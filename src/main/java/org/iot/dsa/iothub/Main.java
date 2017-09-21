@@ -26,6 +26,7 @@ public class Main extends DSRootNode implements DSRequester {
 	
     @Override
     protected void declareDefaults() {
+    	super.declareDefaults();
     	DSAction act = new DSAction() {
 			@Override
 			 public ActionResult invoke(DSInfo info, ActionInvocation invocation) {
@@ -33,8 +34,8 @@ public class Main extends DSRootNode implements DSRequester {
 				return null;
 			}
     	};
-    	act.addParameter("Name", DSString.valueOf("DanielFreeHub"), null);
-    	act.addParameter("Connection_String", DSString.valueOf("HostName=DanielFreeHub.azure-devices.net;SharedAccessKeyName=iothubowner;SharedAccessKey=mBIqQQgZsYgvJ/la4G7KkHZMBzTX4pk3HvF2aabB/LU="), null);
+    	act.addDefaultParameter("Name", DSString.valueOf("DanielFreeHub"), null);
+    	act.addDefaultParameter("Connection_String", DSString.valueOf("HostName=DanielFreeHub.azure-devices.net;SharedAccessKeyName=iothubowner;SharedAccessKey=mBIqQQgZsYgvJ/la4G7KkHZMBzTX4pk3HvF2aabB/LU="), null);
     	declareDefault("Add_IoT_Hub", act);
     }
     

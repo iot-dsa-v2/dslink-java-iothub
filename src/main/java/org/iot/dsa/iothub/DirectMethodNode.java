@@ -1,5 +1,9 @@
 package org.iot.dsa.iothub;
 
+import java.text.DateFormat;
+import java.text.ParsePosition;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Iterator;
 
 import org.iot.dsa.dslink.DSRequesterInterface;
@@ -7,7 +11,9 @@ import org.iot.dsa.dslink.requester.InboundInvokeResponse;
 import org.iot.dsa.dslink.requester.OutboundInvokeRequest;
 import org.iot.dsa.dslink.requester.OutboundRequest;
 import org.iot.dsa.io.json.JsonReader;
+import org.iot.dsa.iothub.node.RemovableNode;
 import org.iot.dsa.node.DSIObject;
+import org.iot.dsa.node.DSInfo;
 import org.iot.dsa.node.DSList;
 import org.iot.dsa.node.DSMap;
 import org.iot.dsa.node.DSString;
@@ -16,6 +22,12 @@ import org.iot.dsa.security.DSPermission;
 import com.microsoft.azure.sdk.iot.device.DeviceTwin.DeviceMethodData;
 
 public class DirectMethodNode extends RemovableNode {
+	@SuppressWarnings("serial")
+	private static DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ") { 
+	    public Date parse(String source, ParsePosition pos) {    
+	        return super.parse(source.replaceFirst(":(?=[0-9]{2}$)",""),pos);
+	    }
+	};
 	static final int METHOD_SUCCESS = 200;
 	static final int METHOD_NOT_DEFINED = 404;
 	static final int METHOD_FAILED = 500;
@@ -23,6 +35,8 @@ public class DirectMethodNode extends RemovableNode {
 	
 	private String methodName;
 	private String path;
+	private DSInfo invokes;
+	private DSList invokeList = new DSList();
 	
 	public DirectMethodNode() {
 	}
@@ -43,28 +57,32 @@ public class DirectMethodNode extends RemovableNode {
 		} else {
 			put("Path", DSString.valueOf(path)).setReadOnly(true);
 		}
+		invokes = add("Invocations", invokeList);
+		invokes.setTransient(true).setReadOnly(true);
 	}
 
 	public DeviceMethodData handle(Object methodData) {
 		
-		if (!path.isEmpty()) { 
-			DSMap params = null;
-			if (methodData != null) {
-				JsonReader reader = null;
-				try {
-					reader = new JsonReader(new String((byte[]) methodData));
-					String s = reader.getElement().toString();
+		DSMap params = null;
+		if (methodData != null) {
+			JsonReader reader = null;
+			try {
+				reader = new JsonReader(new String((byte[]) methodData));
+				String s = reader.getElement().toString();
+				reader.close();
+				reader = new JsonReader(s);
+				params = reader.getMap();
+			} catch (Exception e) {
+			} finally {
+				if (reader != null) { 
 					reader.close();
-					reader = new JsonReader(s);
-					params = reader.getMap();
-				} catch (Exception e) {
-				} finally {
-					if (reader != null) { 
-						reader.close();
-					}
 				}
 			}
-			final DSMap parameters = (params != null) ? params : null;
+		}
+		final DSMap parameters = (params != null) ? params : null;
+		invokeList.add(new DSMap().put("Timestamp", dateFormat.format(new Date())).put("Parameters", parameters));
+		childChanged(invokes);
+		if (!path.isEmpty()) {
 			final DSList results = new DSList();
 			final String thepath = path;
 			OutboundRequest req = new OutboundInvokeRequest() {

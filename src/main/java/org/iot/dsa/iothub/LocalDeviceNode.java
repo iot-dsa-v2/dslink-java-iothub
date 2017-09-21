@@ -7,15 +7,21 @@ import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 
 import org.iot.dsa.dslink.DSRequestException;
-import org.iot.dsa.iothub.Util.MyValueType;
-import org.iot.dsa.node.DSElement;
+import org.iot.dsa.iothub.node.BoolNode;
+import org.iot.dsa.iothub.node.DoubleNode;
+import org.iot.dsa.iothub.node.ListNode;
+import org.iot.dsa.iothub.node.RemovableNode;
+import org.iot.dsa.iothub.node.StringNode;
+import org.iot.dsa.node.DSFlexEnum;
 import org.iot.dsa.node.DSIObject;
 import org.iot.dsa.node.DSIValue;
 import org.iot.dsa.node.DSInfo;
+import org.iot.dsa.node.DSJavaEnum;
 import org.iot.dsa.node.DSList;
 import org.iot.dsa.node.DSMap;
 import org.iot.dsa.node.DSMap.Entry;
@@ -38,9 +44,10 @@ import com.microsoft.azure.sdk.iot.device.Message;
 import com.microsoft.azure.sdk.iot.device.MessageCallback;
 import com.microsoft.azure.sdk.iot.device.MessageProperty;
 import com.microsoft.azure.sdk.iot.device.MessageType;
+import com.microsoft.azure.sdk.iot.device.DeviceTwin.Device;
 import com.microsoft.azure.sdk.iot.device.DeviceTwin.DeviceMethodCallback;
 import com.microsoft.azure.sdk.iot.device.DeviceTwin.DeviceMethodData;
-import com.microsoft.azure.sdk.iot.service.Device;
+import com.microsoft.azure.sdk.iot.device.DeviceTwin.Property;
 import com.microsoft.azure.sdk.iot.service.RegistryManager;
 import com.microsoft.azure.sdk.iot.service.exceptions.IotHubException;
 
@@ -53,8 +60,11 @@ public class LocalDeviceNode extends RemovableNode {
 	private DSInfo c2d;
 	private DSList c2dList = new DSList();
 	private DSNode methodsNode;
-
+	private DSNode desiredNode;
+	private ReportedPropsNode reportedNode;
+	
 	private DeviceClient client;
+	private Device twin;
 	
 	public LocalDeviceNode() {
 	}
@@ -68,12 +78,55 @@ public class LocalDeviceNode extends RemovableNode {
 	@Override
 	protected void declareDefaults() {
 		super.declareDefaults();
-		declareDefault("Methods", new DSNode());
+		declareDefault("Methods", new MethodsNode());
+		declareDefault("Desired Properties", new DSNode());
+		declareDefault("Reported Properties", new ReportedPropsNode());
 		
 		declareDefault("Send_D2C_Message", makeSendMessageAction());
 		declareDefault("Upload_File", makeUploadFileAction());
-		declareDefault("Add_Direct_Method", makeAddMethodAction());
 		declareDefault("Refresh", makeRefreshAction());
+	}
+	
+	public static class MethodsNode extends DSNode {
+		@Override
+		protected void declareDefaults() {
+			declareDefault("Add_Direct_Method", makeAddMethodAction());
+		}
+	}
+	
+	public static class ReportedPropsNode extends DSNode implements TwinPropertyContainer {
+		@Override
+		protected void declareDefaults() {
+			declareDefault("Add_Reported_Property", makeAddReportedPropAction());
+		}
+		
+		@Override
+		protected void onChildChanged(DSInfo info) {
+			onChange(info);
+		}
+
+		@Override
+		public void onChange(DSInfo info) {
+			if (info.isAction()) {
+				return;
+			}
+			String name = info.getName();
+			DSIObject value = info.getObject();
+			if (value instanceof TwinProperty) {
+				Object object = ((TwinProperty) value).getObject();
+				((LocalDeviceNode) info.getParent().getParent()).setReportedProperty(name, object);
+			}
+		}
+
+		@Override
+		public void onDelete(DSInfo info) {
+//			if (info.isAction()) {
+//				return;
+//			}
+//			String name = info.getName();
+//			((LocalDeviceNode) info.getParent().getParent()).setReportedProperty(name, null);
+		}
+		
 	}
 	
 	@Override
@@ -88,6 +141,7 @@ public class LocalDeviceNode extends RemovableNode {
 	protected void onStable() {		
 		status = add("STATUS", DSString.valueOf("Connecting"));
 		status.setTransient(true);
+		status.setReadOnly(true);
 		
 		if (hubNode == null) {
 			DSNode n = getParent();
@@ -100,22 +154,30 @@ public class LocalDeviceNode extends RemovableNode {
 			deviceId = getName();
 		}
 		
-		try {
-			registerDeviceIdentity();
-		} catch (Exception e) {
-			warn("Error getting device identity", e);
-			put(status, DSString.valueOf("Error getting device identity: " + e.getMessage()));
-		}
-		
-		c2d = add("Cloud-To-Device_Messages", DSString.valueOf(c2dList.toString()));
-		c2d.setTransient(true);
+		c2d = add("Cloud-To-Device_Messages", c2dList);
+		c2d.setTransient(true).setReadOnly(true);
 		methodsNode = getNode("Methods");
+		desiredNode = getNode("Desired Properties");
+		reportedNode = (ReportedPropsNode) getNode("Reported Properties");
 				
 		init();
 	}
 
 	private void init() {
 		put("Protocol", DSString.valueOf(protocol.toString())).setReadOnly(true);
+		if (client != null) {
+			try {
+				client.closeNow();
+			} catch (IOException e) {
+				warn(e);
+			}
+		}
+		try {
+			registerDeviceIdentity();
+		} catch (Exception e) {
+			warn("Error getting device identity", e);
+			put(status, DSString.valueOf("Error getting device identity: " + e.getMessage()));
+		}
 		try {
 			this.client = new DeviceClient(connectionString, protocol);
 			MessageCallback callback = new C2DMessageCallback();
@@ -124,6 +186,31 @@ public class LocalDeviceNode extends RemovableNode {
 			client.open();
 			
 			client.subscribeToDeviceMethod(new DirectMethodCallback(), null, new DirectMethodStatusCallback(), null);
+			
+			twin = new Device() {
+				
+				@Override
+				public void PropertyCall(String propertyKey, Object propertyValue, Object context) {
+					desiredNode.put(propertyKey, DSString.valueOf(propertyValue)).setTransient(true).setReadOnly(true);
+				}
+			};
+
+			client.startDeviceTwin(new DeviceTwinStatusCallback(), null, twin, null);
+			client.subscribeToDesiredProperties(twin.getDesiredProp());
+			
+			HashSet<Property> props = new HashSet<Property>();
+			for(DSInfo info: reportedNode) {
+				if (!info.isAction()) {
+					String name = info.getName();
+					DSIObject value = info.getObject();
+					if (value instanceof TwinProperty) {
+						Object object = ((TwinProperty) value).getObject();
+						props.add(new Property(name, object));
+					}
+				}
+			}
+			client.sendReportedProperties(props);
+			
 		} catch (URISyntaxException | IOException e) {
 			warn("Error initializing device client", e);
 			put(status, DSString.valueOf("Error initializing device client: " + e.getMessage()));
@@ -135,7 +222,7 @@ public class LocalDeviceNode extends RemovableNode {
 		String hubConnStr = hubNode.getConnectionString();
 		RegistryManager registryManager = RegistryManager.createFromConnectionString(hubConnStr);
 
-		Device device = Device.createFromId(deviceId, null, null);
+		com.microsoft.azure.sdk.iot.service.Device device = com.microsoft.azure.sdk.iot.service.Device.createFromId(deviceId, null, null);
 		try {
 			device = registryManager.addDevice(device);
 		} catch (IotHubException iote) {
@@ -175,7 +262,7 @@ public class LocalDeviceNode extends RemovableNode {
 				return null;
 			}
 		};
-		act.addParameter(Util.makeParameter("Protocol", DSElement.make(protocol.toString()), MyValueType.enumOf(IotHubNode.protocolEnum.getEnums()), null, null));
+		act.addDefaultParameter("Protocol", DSJavaEnum.valueOf(protocol), null);
 		return act;
 	}
 	
@@ -185,16 +272,16 @@ public class LocalDeviceNode extends RemovableNode {
 		init();
 	}
 
-	private DSAction makeAddMethodAction() {
+	private static DSAction makeAddMethodAction() {
 		DSAction act = new DSAction() {
 			@Override
 			public ActionResult invoke(DSInfo info, ActionInvocation invocation) {
-				((LocalDeviceNode) info.getParent()).addDirectMethod(invocation.getParameters());
+				((LocalDeviceNode) info.getParent().getParent()).addDirectMethod(invocation.getParameters());
 				return null;
 			}
 		};
-		act.addParameter("Method_Name", DSString.NULL, null);
-		act.addParameter("Path", DSString.EMPTY, null);
+		act.addParameter("Method_Name", DSValueType.STRING, null);
+		act.addDefaultParameter("Path", DSString.EMPTY, null);
 		return act;
 	}
 
@@ -205,10 +292,10 @@ public class LocalDeviceNode extends RemovableNode {
 				return ((LocalDeviceNode) info.getParent()).uploadFile(info, invocation.getParameters());
 			}
 		};
-		act.addParameter("Name", DSString.NULL, null);
-		act.addParameter("Filepath", DSString.EMPTY, null).setPlaceHolder("myImage.png");
+		act.addParameter("Name", DSValueType.STRING, null);
+		act.addParameter("Filepath", DSValueType.STRING, null).setPlaceHolder("myImage.png");
 		act.setResultType(ResultType.VALUES);
-		act.addValueResult("Response_Status", DSValueType.STRING, null);
+		act.addValueResult("Response_Status", DSValueType.STRING);
 		return act;
 	}
 
@@ -219,11 +306,55 @@ public class LocalDeviceNode extends RemovableNode {
 				return ((LocalDeviceNode) info.getParent()).sendD2CMessage(info, invocation.getParameters());
 			}
 		};
-		act.addParameter("Message", DSString.NULL, null);
-		act.addParameter("Properties", DSString.valueOf("{}"), null).setType(DSValueType.MAP);
+		act.addParameter("Message", DSValueType.STRING, null);
+		act.addDefaultParameter("Properties", new DSMap(), null);
 		act.setResultType(ResultType.VALUES);
-		act.addValueResult("Response_Status", DSValueType.STRING, null);
+		act.addValueResult("Response_Status", DSValueType.STRING);
 		return act;
+	}
+	
+	private static DSAction makeAddReportedPropAction() {
+		DSAction act = new DSAction() {
+			@Override
+			public ActionResult invoke(DSInfo info, ActionInvocation invocation) {
+				((LocalDeviceNode) info.getParent().getParent()).addReportedProp(invocation.getParameters());
+				return null;
+			}
+		};
+		act.addParameter("Name", DSValueType.STRING, null);
+		act.addParameter("Value Type", DSFlexEnum.valueOf("String", Util.getSimpleValueTypes()), null);
+		return act;
+	}
+	
+	private void addReportedProp(DSMap parameters) {
+		String name = parameters.getString("Name");
+		String vt = parameters.getString("Value Type");
+		TwinProperty vn;
+		switch(vt.charAt(0)) {
+		case 'S': vn = new StringNode(); break;
+		case 'N': vn = new DoubleNode(); break;
+		case 'B': vn = new BoolNode(); break;
+		case 'L': vn = new ListNode(); break;
+		case 'M': vn = new TwinPropertyNode(); break;
+		default: vn = null; break;
+		}
+		if (vn != null) {
+			reportedNode.put(name, vn);
+			if (vn instanceof DSNode) {
+				reportedNode.onChange(((DSNode) vn).getInfo());
+			}
+		}
+	}
+	
+	private void setReportedProperty(String name, Object value) {
+		HashSet<Property> props = new HashSet<Property>();
+		props.add(new Property(name, value));
+		try {
+			client.sendReportedProperties(props);
+		} catch (IOException e) {
+			warn(e);
+			throw new DSRequestException(e.getMessage());
+		}
 	}
 	
 	
@@ -321,6 +452,18 @@ public class LocalDeviceNode extends RemovableNode {
 		
 	}
 	
+	@Override
+	public void delete() {
+		super.delete();
+		if (client != null) {
+			try {
+				client.closeNow();
+			} catch (IOException e) {
+				warn(e);
+			}
+		}
+	}
+	
 	
 	private class ResponseCallback implements IotHubEventCallback {
 		@SuppressWarnings("unchecked")
@@ -352,7 +495,7 @@ public class LocalDeviceNode extends RemovableNode {
 				msgMap.put(prop.getName(), prop.getValue());
 			}
 			c2dList.add(msgMap);
-			put(c2d, DSString.valueOf(c2dList.toString()));
+			childChanged(c2d);
 			return IotHubMessageResult.COMPLETE;
 		}
 	}
@@ -376,6 +519,13 @@ public class LocalDeviceNode extends RemovableNode {
 		@Override
 		public void execute(IotHubStatusCode responseStatus, Object callbackContext) {
 			info("IoT Hub responded to device method operation with status " + responseStatus.name());
+		}
+	}
+	
+	private class DeviceTwinStatusCallback implements IotHubEventCallback {
+		@Override
+		public void execute(IotHubStatusCode responseStatus, Object callbackContext) {
+			info("IoT Hub responded to device twin operation with status " + responseStatus.name());
 		}
 	}
 }

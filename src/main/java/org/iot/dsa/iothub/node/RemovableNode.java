@@ -1,4 +1,4 @@
-package org.iot.dsa.iothub;
+package org.iot.dsa.iothub.node;
 
 import org.iot.dsa.node.DSInfo;
 import org.iot.dsa.node.DSNode;
@@ -25,7 +25,7 @@ public class RemovableNode extends DSNode {
 	}
 	
 	public void delete() {
-		getParent().remove(getName());
+		getParent().remove(getInfo());
 	}
 	
 }

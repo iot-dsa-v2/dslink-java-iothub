@@ -1,108 +1,67 @@
 package org.iot.dsa.iothub;
 
-import java.util.Arrays;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
-import org.apache.commons.lang3.StringUtils;
-import org.iot.dsa.node.DSElement;
+import org.iot.dsa.iothub.node.BoolNode;
+import org.iot.dsa.iothub.node.DoubleNode;
+import org.iot.dsa.iothub.node.StringNode;
+import org.iot.dsa.node.DSBool;
+import org.iot.dsa.node.DSDouble;
+import org.iot.dsa.node.DSList;
 import org.iot.dsa.node.DSMap;
+import org.iot.dsa.node.DSMap.Entry;
+import org.iot.dsa.node.DSMetadata;
 import org.iot.dsa.node.DSString;
 import org.iot.dsa.node.DSValueType;
-import org.iot.dsa.node.action.ActionResultSpec;
+
 
 public class Util {
 	
-	public static DSMap makeParameter(String name, DSElement def, MyValueType type, String description, String placeholder) {
-		DSMap param = new DSMap();
-		if (name == null || (def == null && type == null)) {
-			return param;
-		}
-		param.put("name", name);
-		if (def != null) {
-			param.put("default", def);
-		}
-		if (type != null) {
-			param.put("type", type.toString());
-		}
-		if (description != null) {
-			param.put("description", description);
-		}
-		if (placeholder != null) {
-			param.put("placeholder", placeholder);
-		}
-		return param;
+	public static DSMap makeColumn(String name, DSValueType type) {
+		return new DSMetadata().setName(name).setType(type).getMap();
 	}
 	
-	public static class MyColumn implements ActionResultSpec {
-		
-		String name;
-		DSValueType type;
-		
-		public MyColumn(String name, DSValueType type) {
-			this.name = name;
-			this.type = type;
+	public static Map<String, String> dsMapToMap(DSMap dsMap) {
+		Map<String, String> map = new HashMap<String, String>();
+		for(int i=0; i<dsMap.size(); i++) {
+			Entry en = dsMap.getEntry(i);
+			map.put(en.getKey(), en.getValue().toString());
 		}
-
-		@Override
-		public DSMap getMetadata() {
-			return null;
-		}
-
-		@Override
-		public String getName() {
-			return name;
-		}
-
-		@Override
-		public DSValueType getType() {
-			return type;
-		}
+		return map;
 	}
 	
-	public static class MyValueType {
-		
-		private DSValueType type;
-		private List<String> states;
-		
-		private MyValueType(DSValueType type) {
-			this(type, null);
+	private static DSList simpleVTs;
+	
+	public static DSList getSimpleValueTypes() {
+		if (simpleVTs == null) {
+			simpleVTs = new DSList().add("String").add("Number").add("Bool").add("Map");
 		}
-		
-		private MyValueType(DSValueType type, List<String> states) {
-			this.type = type;
-			this.states = states;
+		return simpleVTs;
+	}
+	
+	public static TwinProperty objectToValueNode(Object o) {
+		if (o instanceof Number) {
+			DoubleNode vn = new DoubleNode();
+			vn.setValue(DSDouble.valueOf(((Number) o).doubleValue()));
+			return vn;
 		}
-
-		public static final MyValueType ANY = new MyValueType(DSValueType.ANY);
-		public static final MyValueType BINARY = new MyValueType(DSValueType.BINARY);
-		public static final MyValueType BOOL = new MyValueType(DSValueType.BOOL);
-		public static final MyValueType ENUM = new MyValueType(DSValueType.ENUM);
-		public static final MyValueType LIST = new MyValueType(DSValueType.LIST);
-		public static final MyValueType MAP = new MyValueType(DSValueType.MAP);
-		public static final MyValueType NUMBER = new MyValueType(DSValueType.NUMBER);
-		public static final MyValueType STRING = new MyValueType(DSValueType.STRING);
-		
-		public static MyValueType enumOf(List<String> states) {
-			return new MyValueType(DSValueType.ENUM, states);
+		if (o instanceof Boolean) {
+			BoolNode vn = new BoolNode();
+			vn.setValue(DSBool.valueOf(((Boolean) o).booleanValue()));
+			return vn;
 		}
-		
-		public static MyValueType boolOf(String trueString, String falseString) {
-			return new MyValueType(DSValueType.BOOL, Arrays.asList(trueString, falseString));
-		}
-		
-		@Override
-		public String toString() {
-			StringBuilder sb = new StringBuilder(type.toString());
-			if (states != null) {
-				sb.append("[").append(StringUtils.join(states, ',')).append("]");
+		if (o instanceof Map) {
+			TwinPropertyNode vn = new TwinPropertyNode();
+			for (Map.Entry<String, Object> e: ((Map<String,Object>) o).entrySet()) {
+				TwinProperty tp = Util.objectToValueNode(e.getValue());
+				vn.put(e.getKey(), tp);
 			}
-			return sb.toString();
+			return vn;
 		}
 		
-		public DSString encode() {
-			return DSString.valueOf(toString());
-		}
-
+		StringNode vn = new StringNode();
+		vn.setValue(DSString.valueOf(o.toString()));
+		return vn;
 	}
-
 }
