@@ -341,7 +341,7 @@ public class RemoteDeviceNode extends RemovableNode {
 	}
 	
 	
-	protected ActionResult invokeDirectMethod(DSInfo actionInfo, DSMap parameters) {
+	public ActionResult invokeDirectMethod(DSInfo actionInfo, DSMap parameters) {
 		final DSAction action = actionInfo.getAction();
 		String methodName = parameters.getString("Method_Name");
 		long responseTimeout = TimeUnit.SECONDS.toSeconds(parameters.getLong("Response_Timeout"));
@@ -385,7 +385,7 @@ public class RemoteDeviceNode extends RemovableNode {
 		}
 	}
 
-	private void sendC2DMessage(DSMap parameters) {
+	public void sendC2DMessage(DSMap parameters) {
 		String protocolStr = parameters.getString("Protocol");
 		IotHubServiceClientProtocol protocol = protocolStr.endsWith("WS") ? IotHubServiceClientProtocol.AMQPS_WS : IotHubServiceClientProtocol.AMQPS;
 		String message = parameters.getString("Message");

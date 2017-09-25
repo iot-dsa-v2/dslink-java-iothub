@@ -48,6 +48,7 @@ import com.microsoft.azure.sdk.iot.device.DeviceTwin.Device;
 import com.microsoft.azure.sdk.iot.device.DeviceTwin.DeviceMethodCallback;
 import com.microsoft.azure.sdk.iot.device.DeviceTwin.DeviceMethodData;
 import com.microsoft.azure.sdk.iot.device.DeviceTwin.Property;
+import com.microsoft.azure.sdk.iot.service.DeviceStatus;
 import com.microsoft.azure.sdk.iot.service.RegistryManager;
 import com.microsoft.azure.sdk.iot.service.exceptions.IotHubException;
 
@@ -173,30 +174,14 @@ public class LocalDeviceNode extends RemovableNode {
 			}
 		}
 		try {
-			registerDeviceIdentity();
+			DeviceStatus deviceStatus = registerDeviceIdentity();
+			put(status, DSString.valueOf(deviceStatus.toString()));
 		} catch (Exception e) {
 			warn("Error getting device identity", e);
 			put(status, DSString.valueOf("Error getting device identity: " + e.getMessage()));
 		}
 		try {
-			this.client = new DeviceClient(connectionString, protocol);
-			MessageCallback callback = new C2DMessageCallback();
-			client.setMessageCallback(callback, null);
-			
-			client.open();
-			
-			client.subscribeToDeviceMethod(new DirectMethodCallback(), null, new DirectMethodStatusCallback(), null);
-			
-			twin = new Device() {
-				
-				@Override
-				public void PropertyCall(String propertyKey, Object propertyValue, Object context) {
-					desiredNode.put(propertyKey, DSString.valueOf(propertyValue)).setTransient(true).setReadOnly(true);
-				}
-			};
-
-			client.startDeviceTwin(new DeviceTwinStatusCallback(), null, twin, null);
-			client.subscribeToDesiredProperties(twin.getDesiredProp());
+			setupClient();
 			
 			HashSet<Property> props = new HashSet<Property>();
 			for(DSInfo info: reportedNode) {
@@ -217,8 +202,29 @@ public class LocalDeviceNode extends RemovableNode {
 		}
 		put("Edit", makeEditAction()).setTransient(true);
 	}
+	
+	public void setupClient() throws IOException, URISyntaxException {
+		this.client = new DeviceClient(connectionString, protocol);
+		MessageCallback callback = new C2DMessageCallback();
+		client.setMessageCallback(callback, null);
+		
+		client.open();
+		
+		client.subscribeToDeviceMethod(new DirectMethodCallback(), null, new DirectMethodStatusCallback(), null);
+		
+		twin = new Device() {
+			
+			@Override
+			public void PropertyCall(String propertyKey, Object propertyValue, Object context) {
+				desiredNode.put(propertyKey, DSString.valueOf(propertyValue)).setTransient(true).setReadOnly(true);
+			}
+		};
 
-	private void registerDeviceIdentity() throws IOException, JsonSyntaxException, IotHubException, IllegalArgumentException, NoSuchAlgorithmException {
+		client.startDeviceTwin(new DeviceTwinStatusCallback(), null, twin, null);
+		client.subscribeToDesiredProperties(twin.getDesiredProp());
+	}
+
+	public DeviceStatus registerDeviceIdentity() throws IOException, JsonSyntaxException, IotHubException, IllegalArgumentException, NoSuchAlgorithmException {
 		String hubConnStr = hubNode.getConnectionString();
 		RegistryManager registryManager = RegistryManager.createFromConnectionString(hubConnStr);
 
@@ -240,7 +246,7 @@ public class LocalDeviceNode extends RemovableNode {
 	    }
 	    String deviceKey = device.getPrimaryKey();
 	    connectionString = "HostName=" + hostName + ";DeviceId=" + deviceId + ";SharedAccessKey=" + deviceKey;
-	    put(status, DSString.valueOf(device.getStatus().toString()));
+	    return device.getStatus();
 	}
 	
 	private DSAction makeRefreshAction() {
@@ -358,7 +364,7 @@ public class LocalDeviceNode extends RemovableNode {
 	}
 	
 	
-	private ActionResult sendD2CMessage(DSInfo actionInfo, DSMap parameters) {
+	public ActionResult sendD2CMessage(DSInfo actionInfo, DSMap parameters) {
 		if (client == null) {
 			throw new DSRequestException("Client not initialized");
 		}
@@ -494,25 +500,40 @@ public class LocalDeviceNode extends RemovableNode {
 			for (MessageProperty prop: message.getProperties()) {
 				msgMap.put(prop.getName(), prop.getValue());
 			}
-			c2dList.add(msgMap);
-			childChanged(c2d);
+			incomingMessage(msgMap);
 			return IotHubMessageResult.COMPLETE;
 		}
+	}
+	
+	public void incomingMessage(DSMap message) {
+		c2dList.add(message);
+		childChanged(c2d);
 	}
 	
 	private class DirectMethodCallback implements DeviceMethodCallback {
 		@Override
 		public DeviceMethodData call(String methodName, Object methodData, Object context) {
 			DeviceMethodData deviceMethodData;
-			DSIObject child = methodsNode.get(methodName);
-			if (child instanceof DirectMethodNode) {
-				deviceMethodData = ((DirectMethodNode) child).handle(methodData);
+			DirectMethodNode child = getDirectMethod(methodName);
+			if (child != null) {
+				deviceMethodData = child.handle(methodData);
 			} else {
 				int status = DirectMethodNode.METHOD_NOT_DEFINED;
 				deviceMethodData = new DeviceMethodData(status, "Method '" + methodName + "' not found");
 			}
 			return deviceMethodData;
 		}
+	}
+	
+	public DirectMethodNode getDirectMethod(String methodName) {
+		if (methodsNode == null) {
+			return null;
+		}
+		DSIObject child = methodsNode.get(methodName);
+		if (child instanceof DirectMethodNode) {
+			return (DirectMethodNode) child;
+		}
+		return null;
 	}
 	
 	private class DirectMethodStatusCallback implements IotHubEventCallback {

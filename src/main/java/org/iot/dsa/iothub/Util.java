@@ -64,4 +64,18 @@ public class Util {
 		vn.setValue(DSString.valueOf(o.toString()));
 		return vn;
 	}
+	
+	public static void putInMap(DSMap map, String key, Object value) {
+		if (value instanceof Long) {
+			map.put(key, (Long) value);
+		} else if (value instanceof Integer) {
+			map.put(key, (Integer) value);
+		} else if (value instanceof Number) {
+			map.put(key, ((Number) value).doubleValue());
+		} else if (value instanceof Boolean) {
+			map.put(key, (Boolean) value);
+		} else {
+			map.put(key, value.toString());
+		}
+	}
 }

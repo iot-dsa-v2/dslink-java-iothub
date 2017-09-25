@@ -80,8 +80,7 @@ public class DirectMethodNode extends RemovableNode {
 			}
 		}
 		final DSMap parameters = (params != null) ? params : null;
-		invokeList.add(new DSMap().put("Timestamp", dateFormat.format(new Date())).put("Parameters", parameters));
-		childChanged(invokes);
+		recordInvoke(parameters);
 		if (!path.isEmpty()) {
 			final DSList results = new DSList();
 			final String thepath = path;
@@ -130,7 +129,16 @@ public class DirectMethodNode extends RemovableNode {
 			}
 			return new DeviceMethodData(METHOD_SUCCESS, results.toString());
 		} else {
-			return new DeviceMethodData(METHOD_NOT_IMPLEMENTED, "Method '" + methodName + "' successfully invoked; however, it currently does nothing");
+			return new DeviceMethodData(METHOD_SUCCESS, "Success");
+		}
+	}
+	
+	public void recordInvoke(DSMap parameters) {
+		try {
+			invokeList.add(new DSMap().put("Timestamp", dateFormat.format(new Date())).put("Parameters", parameters));
+			childChanged(invokes);
+		} catch (Exception e) {
+			warn(e);
 		}
 	}
 	

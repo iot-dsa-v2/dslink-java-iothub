@@ -225,7 +225,7 @@ public class IotHubNode extends RemovableNode {
 		localNode.add(id, new LocalDeviceNode(this, id, protocol));
 	}
 	
-	private ActionResult readMessages(DSInfo actionInfo, ActionInvocation invocation) {
+	public ActionResult readMessages(DSInfo actionInfo, ActionInvocation invocation) {
 		final DSAction action = actionInfo.getAction();
 		DSMap parameters = invocation.getParameters();
 		String name = parameters.getString("EventHub_Compatible_Name");
@@ -315,7 +315,7 @@ public class IotHubNode extends RemovableNode {
 										row.add(payload);
 										DSMap properties = row.addMap();
 										for(Entry<String, Object> entry: receivedEvent.getProperties().entrySet()) {
-											properties.put(entry.getKey(), entry.getValue().toString());
+											Util.putInMap(properties, entry.getKey(), entry.getValue());
 										}
 										invocation.send(row);
 									}
