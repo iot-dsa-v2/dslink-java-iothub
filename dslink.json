@@ -16,7 +16,6 @@
     "url": "https://github.com/IOT-DSA/dslink-java-iothub/issues"
   },
   "configs": {
-    "description1": "*************** REQUIRED CONFIGS IN ALPHABETICAL ORDER ***************",
     "broker": {
       "description": "URL to broker.",
       "type": "url",
@@ -47,7 +46,6 @@
       "value": "org.iot.dsa.iothub.Main",
       "required": true
     },
-    "description2": "*************** OPTIONAL CONFIGS IN ALPHABETICAL ORDER ***************",
     "connectionType": {
       "description": "Can be specified to override the default connection type.",
       "type": "string",
