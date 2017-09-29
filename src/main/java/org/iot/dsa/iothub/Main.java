@@ -1,7 +1,5 @@
 package org.iot.dsa.iothub;
 
-import org.iot.dsa.dslink.DSLink;
-import org.iot.dsa.dslink.DSLinkConfig;
 import org.iot.dsa.dslink.DSRequester;
 import org.iot.dsa.dslink.DSRequesterInterface;
 import org.iot.dsa.dslink.DSRootNode;
@@ -38,12 +36,6 @@ public class Main extends DSRootNode implements DSRequester {
     	act.addDefaultParameter("Connection_String", DSString.valueOf("HostName=DanielFreeHub.azure-devices.net;SharedAccessKeyName=iothubowner;SharedAccessKey=mBIqQQgZsYgvJ/la4G7KkHZMBzTX4pk3HvF2aabB/LU="), null);
     	declareDefault("Add_IoT_Hub", act);
     }
-    
-    public static void main(String[] args) throws Exception {
-		DSLinkConfig cfg = new DSLinkConfig(args);
-        DSLink link = new DSLink(cfg);
-        link.run();
-	}
     
     public static DSRequesterInterface getRequesterSession() {
     	return session;
