@@ -1,6 +1,6 @@
 {
   "name": "dslink-java-iothub",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "Azure IoT Hub DSLink",
   "license": "ISC",
   "author": {

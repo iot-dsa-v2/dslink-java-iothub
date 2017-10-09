@@ -4,7 +4,7 @@ apply plugin: 'application'
 mainClassName = 'org.iot.dsa.dslink.DSLink'
 sourceCompatibility = 1.7
 targetCompatibility = 1.7
-version = '0.0.8-SNAPSHOT'
+version = '0.0.9-SNAPSHOT'
 
 repositories {
     jcenter()
@@ -28,6 +28,7 @@ dependencies {
     testCompile 'org.mockito:mockito-all:+'
 }
 
+test.onlyIf { false }
 
 run {
     args System.getProperty("exec.args", "").split()

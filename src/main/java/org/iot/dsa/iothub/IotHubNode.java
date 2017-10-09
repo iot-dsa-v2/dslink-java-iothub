@@ -279,7 +279,7 @@ public class IotHubNode extends RemovableNode {
 					cols.add(Util.makeColumn("Enqueued_Time", DSValueType.STRING));
 					cols.add(Util.makeColumn("Device_ID", DSValueType.STRING));
 					cols.add(Util.makeColumn("Message_Payload", DSValueType.STRING));
-					cols.add(Util.makeColumn("Parameters", DSValueType.MAP));
+					cols.add(Util.makeColumn("Properties", DSValueType.MAP));
 				}
 				return cols.iterator();
 			}
