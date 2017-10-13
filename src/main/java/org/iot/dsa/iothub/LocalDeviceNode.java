@@ -52,6 +52,11 @@ import com.microsoft.azure.sdk.iot.service.DeviceStatus;
 import com.microsoft.azure.sdk.iot.service.RegistryManager;
 import com.microsoft.azure.sdk.iot.service.exceptions.IotHubException;
 
+/**
+ * An instance of this node represents a specific local device registered in an Azure IoT Hub.
+ *
+ * @author Daniel Shapiro
+ */
 public class LocalDeviceNode extends RemovableNode {
 	private IotHubNode hubNode;
 	private String deviceId;
@@ -83,22 +88,22 @@ public class LocalDeviceNode extends RemovableNode {
 		declareDefault("Desired Properties", new DSNode());
 		declareDefault("Reported Properties", new ReportedPropsNode());
 		
-		declareDefault("Send_D2C_Message", makeSendMessageAction());
-		declareDefault("Upload_File", makeUploadFileAction());
+		declareDefault("Send D2C Message", makeSendMessageAction());
+		declareDefault("Upload File", makeUploadFileAction());
 		declareDefault("Refresh", makeRefreshAction());
 	}
 	
 	public static class MethodsNode extends DSNode {
 		@Override
 		protected void declareDefaults() {
-			declareDefault("Add_Direct_Method", makeAddMethodAction());
+			declareDefault("Add Direct Method", makeAddMethodAction());
 		}
 	}
 	
 	public static class ReportedPropsNode extends DSNode implements TwinPropertyContainer {
 		@Override
 		protected void declareDefaults() {
-			declareDefault("Add_Reported_Property", makeAddReportedPropAction());
+			declareDefault("Add Reported Property", makeAddReportedPropAction());
 		}
 		
 		@Override
@@ -155,7 +160,7 @@ public class LocalDeviceNode extends RemovableNode {
 			deviceId = getName();
 		}
 		
-		c2d = add("Cloud-To-Device_Messages", c2dList);
+		c2d = add("Cloud-To-Device Messages", c2dList);
 		c2d.setTransient(true).setReadOnly(true);
 		methodsNode = getNode("Methods");
 		desiredNode = getNode("Desired Properties");
@@ -194,7 +199,9 @@ public class LocalDeviceNode extends RemovableNode {
 					}
 				}
 			}
-			client.sendReportedProperties(props);
+			if (!props.isEmpty()) { 
+			    client.sendReportedProperties(props);
+			}
 			
 		} catch (URISyntaxException | IOException e) {
 			warn("Error initializing device client", e);
@@ -286,7 +293,7 @@ public class LocalDeviceNode extends RemovableNode {
 				return null;
 			}
 		};
-		act.addParameter("Method_Name", DSValueType.STRING, null);
+		act.addParameter("Method Name", DSValueType.STRING, null);
 		act.addDefaultParameter("Path", DSString.EMPTY, null);
 		return act;
 	}
@@ -301,7 +308,7 @@ public class LocalDeviceNode extends RemovableNode {
 		act.addParameter("Name", DSValueType.STRING, null);
 		act.addParameter("Filepath", DSValueType.STRING, null).setPlaceHolder("myImage.png");
 		act.setResultType(ResultType.VALUES);
-		act.addValueResult("Response_Status", DSValueType.STRING);
+		act.addValueResult("Response Status", DSValueType.STRING);
 		return act;
 	}
 
@@ -315,7 +322,7 @@ public class LocalDeviceNode extends RemovableNode {
 		act.addParameter("Message", DSValueType.STRING, null);
 		act.addDefaultParameter("Properties", new DSMap(), null);
 		act.setResultType(ResultType.VALUES);
-		act.addValueResult("Response_Status", DSValueType.STRING);
+		act.addValueResult("Response Status", DSValueType.STRING);
 		return act;
 	}
 	
@@ -407,7 +414,7 @@ public class LocalDeviceNode extends RemovableNode {
 	}
 
 	private void addDirectMethod(DSMap parameters) {
-		String methodName = parameters.getString("Method_Name");
+		String methodName = parameters.getString("Method Name");
 		String path = parameters.getString("Path");
 		methodsNode.add(methodName, new DirectMethodNode(methodName, path));
 	}
@@ -496,7 +503,7 @@ public class LocalDeviceNode extends RemovableNode {
 			String corrid = message.getCorrelationId();
 			MessageType type = message.getMessageType();
 			String typeStr = type != null ? type.toString() : null;
-			msgMap.put("ID", id).put("Correlation_ID", corrid).put("Type", typeStr).put("Body", body);
+			msgMap.put("ID", id).put("Correlation ID", corrid).put("Type", typeStr).put("Body", body);
 			for (MessageProperty prop: message.getProperties()) {
 				msgMap.put(prop.getName(), prop.getValue());
 			}

@@ -42,6 +42,11 @@ import com.microsoft.azure.sdk.iot.service.devicetwin.MethodResult;
 import com.microsoft.azure.sdk.iot.service.devicetwin.Pair;
 import com.microsoft.azure.sdk.iot.service.exceptions.IotHubException;
 
+/**
+ * An instance of this node represents a specific IoT Hub Device.
+ *
+ * @author Daniel Shapiro
+ */
 public class RemoteDeviceNode extends RemovableNode {
 	private String deviceId;
 	private IotHubNode hubNode;
@@ -67,15 +72,15 @@ public class RemoteDeviceNode extends RemovableNode {
 		declareDefault("Desired Properties", new DesiredPropsNode());
 		declareDefault("Reported Properties", new DSNode());
 		
-		declareDefault("Invoke_Direct_Method", makeInvokeDirectMethodAction());
-		declareDefault("Send_C2D_Message", makeSendMessageAction());
+		declareDefault("Invoke Direct Method", makeInvokeDirectMethodAction());
+		declareDefault("Send C2D Message", makeSendMessageAction());
 		declareDefault("Refresh", makeRefreshAction());
 	}
 	
 	public static class TagsNode extends DSNode implements TwinPropertyContainer {
 		@Override
 		protected void declareDefaults() {
-			declareDefault("Add_Tag", makeAddTagAction());
+			declareDefault("Add Tag", makeAddTagAction());
 		}
 		
 		@Override
@@ -109,7 +114,7 @@ public class RemoteDeviceNode extends RemovableNode {
 	public static class DesiredPropsNode extends DSNode implements TwinPropertyContainer {
 		@Override
 		protected void declareDefaults() {
-			declareDefault("Add_Desired_Property", makeAddDesiredPropAction());
+			declareDefault("Add Desired Property", makeAddDesiredPropAction());
 		}
 		
 		@Override
@@ -242,13 +247,13 @@ public class RemoteDeviceNode extends RemovableNode {
 				return ((RemoteDeviceNode) info.getParent()).invokeDirectMethod(info, invocation.getParameters());
 			}
 		};
-		act.addParameter("Method_Name", DSValueType.STRING, null);
-		act.addDefaultParameter("Response_Timeout", DSInt.valueOf(30), "Response Timeout in Seconds");
-		act.addDefaultParameter("Connect_Timeout", DSInt.valueOf(5), "Connect Timeout in Seconds");
+		act.addParameter("Method Name", DSValueType.STRING, null);
+		act.addDefaultParameter("Response Timeout", DSInt.valueOf(30), "Response Timeout in Seconds");
+		act.addDefaultParameter("Connect Timeout", DSInt.valueOf(5), "Connect Timeout in Seconds");
 		act.addParameter("Payload", DSValueType.STRING, "Payload of direct method invocation");
 		act.setResultType(ResultType.VALUES);
-		act.addValueResult("Result_Status", DSValueType.NUMBER);
-		act.addValueResult("Result_Payload", DSValueType.STRING);
+		act.addValueResult("Result Status", DSValueType.NUMBER);
+		act.addValueResult("Result Payload", DSValueType.STRING);
 		return act;
 	}
 	
@@ -343,9 +348,9 @@ public class RemoteDeviceNode extends RemovableNode {
 	
 	public ActionResult invokeDirectMethod(DSInfo actionInfo, DSMap parameters) {
 		final DSAction action = actionInfo.getAction();
-		String methodName = parameters.getString("Method_Name");
-		long responseTimeout = TimeUnit.SECONDS.toSeconds(parameters.getLong("Response_Timeout"));
-		long connectTimeout = TimeUnit.SECONDS.toSeconds(parameters.getLong("Connect_Timeout"));
+		String methodName = parameters.getString("Method Name");
+		long responseTimeout = TimeUnit.SECONDS.toSeconds(parameters.getLong("Response Timeout"));
+		long connectTimeout = TimeUnit.SECONDS.toSeconds(parameters.getLong("Connect Timeout"));
 		String invPayload = parameters.getString("Payload");
 		DeviceMethod methodClient = hubNode.getMethodClient();
 		if (methodClient == null) {

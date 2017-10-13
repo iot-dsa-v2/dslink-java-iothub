@@ -3,6 +3,11 @@ package org.iot.dsa.iothub.node;
 import org.iot.dsa.node.DSList;
 import org.iot.dsa.node.DSValueType;
 
+/**
+ * A node that is also a List value.
+ *
+ * @author Daniel Shapiro
+ */
 public class ListNode extends ValueNode {
 	
 	public ListNode() {

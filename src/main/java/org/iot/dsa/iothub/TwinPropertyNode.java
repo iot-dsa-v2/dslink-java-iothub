@@ -20,6 +20,11 @@ import org.iot.dsa.node.action.ActionInvocation;
 import org.iot.dsa.node.action.ActionResult;
 import org.iot.dsa.node.action.DSAction;
 
+/**
+ * A node that represents a Device Twin Property or Tag whose value is a map.
+ *
+ * @author Daniel Shapiro
+ */
 public class TwinPropertyNode extends RemovableNode implements TwinProperty, TwinPropertyContainer {
 	
 	private Set<String> nulls = new HashSet<String>();

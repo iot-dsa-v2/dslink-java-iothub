@@ -39,6 +39,11 @@ import com.microsoft.azure.sdk.iot.service.devicetwin.DeviceMethod;
 import com.microsoft.azure.sdk.iot.service.devicetwin.DeviceTwin;
 import com.microsoft.azure.servicebus.ServiceBusException;
 
+/**
+ * An instance of this node represents a specific Azure IoT Hub.
+ *
+ * @author Daniel Shapiro
+ */
 public class IotHubNode extends RemovableNode {
 	private String connectionString;
 	
@@ -79,8 +84,8 @@ public class IotHubNode extends RemovableNode {
 		super.declareDefaults();
 		declareDefault("Local", new LocalNode());
 		declareDefault("Remote", new RemoteNode());
-		declareDefault("Read_Messages", makeReadMessagesAction());
-		declareDefault("Get_File_Upload_Notifications", makeReadFileNotificationsAction());
+		declareDefault("Read Messages", makeReadMessagesAction());
+		declareDefault("Get File Upload Notifications", makeReadFileNotificationsAction());
 	}
 	
 	public static class LocalNode extends DSNode {
@@ -90,7 +95,7 @@ public class IotHubNode extends RemovableNode {
 		@Override
 		protected void declareDefaults() {
 			super.declareDefaults();
-			declareDefault("Create_Local_Device", makeCreateDeviceAction());
+			declareDefault("Create Local Device", makeCreateDeviceAction());
 		}
 	}
 	
@@ -101,14 +106,14 @@ public class IotHubNode extends RemovableNode {
 		@Override
 		protected void declareDefaults() {
 			super.declareDefaults();
-			declareDefault("Add_Remote_Device", makeAddDeviceAction());
+			declareDefault("Add Remote Device", makeAddDeviceAction());
 		}
 	}
 
 	@Override
 	protected void onStarted() {
 		if (connectionString == null) {
-			DSIObject cs = get("Connection_String");
+			DSIObject cs = get("Connection String");
 			connectionString = cs instanceof DSString ? ((DSString) cs).toString() : "";
 		}
 	}
@@ -121,7 +126,7 @@ public class IotHubNode extends RemovableNode {
 	}
 	
 	private void init() {
-		put("Connection_String", DSString.valueOf(connectionString)).setReadOnly(true);
+		put("Connection String", DSString.valueOf(connectionString)).setReadOnly(true);
 		createMethodClient();
 		createTwinClient();
 		put("Edit", makeEditAction()).setTransient(true);
@@ -151,7 +156,7 @@ public class IotHubNode extends RemovableNode {
 				return null;
 			}
 		};
-		act.addDefaultParameter("Connection_String", DSString.valueOf(connectionString), null);
+		act.addDefaultParameter("Connection String", DSString.valueOf(connectionString), null);
 		return act;
 	}
 
@@ -163,7 +168,7 @@ public class IotHubNode extends RemovableNode {
 				return null;
 			}
 		};
-		act.addParameter("Device_ID", DSValueType.STRING, null);
+		act.addParameter("Device ID", DSValueType.STRING, null);
 		act.addParameter("Protocol", DSJavaEnum.valueOf(IotHubClientProtocol.MQTT), null);
 		return act;
 	}
@@ -175,9 +180,9 @@ public class IotHubNode extends RemovableNode {
 				return ((IotHubNode) info.getParent()).readMessages(info, invocation);
 			}
 		};
-		act.addDefaultParameter("EventHub_Compatible_Name", DSString.valueOf("iothub-ehub-danielfree-172452-a48c3b34bf"), null);
-		act.addDefaultParameter("EventHub_Compatible_Endpoint", DSString.valueOf("Endpoint=sb://ihsuprodbyres053dednamespace.servicebus.windows.net/;SharedAccessKeyName=iothubowner;SharedAccessKey=mBIqQQgZsYgvJ/la4G7KkHZMBzTX4pk3HvF2aabB/LU="), null);
-		act.addParameter("Partition_ID", DSValueType.STRING, null).setPlaceHolder("0");
+		act.addParameter("EventHub Compatible Name", DSValueType.STRING, null);
+		act.addParameter("EventHub Compatible Endpoint", DSValueType.STRING, null);
+		act.addParameter("Partition ID", DSValueType.STRING, null).setPlaceHolder("0");
 		act.addParameter("Start Time", DSValueType.STRING, "Optional - defaults to 'now'").setPlaceHolder("Optional");
 		act.setResultType(ResultType.STREAM_TABLE);
 		return act;
@@ -191,7 +196,7 @@ public class IotHubNode extends RemovableNode {
 				return null;
 			}
 		};
-		act.addParameter("Device_ID", DSValueType.STRING, null);
+		act.addParameter("Device ID", DSValueType.STRING, null);
 		return act;
 	}
 	
@@ -209,17 +214,17 @@ public class IotHubNode extends RemovableNode {
 	
 	
 	private void edit(DSMap parameters) {
-		connectionString = parameters.getString("Connection_String");
+		connectionString = parameters.getString("Connection String");
 		init();
 	}
 	
 	private void addDevice(DSMap parameters) {
-		String id = parameters.getString("Device_ID");
+		String id = parameters.getString("Device ID");
 		remoteNode.add(id, new RemoteDeviceNode(this, id));
 	}
 	
 	private void createDevice(DSMap parameters) {
-		String id = parameters.getString("Device_ID");
+		String id = parameters.getString("Device ID");
 		String protocolStr = parameters.getString("Protocol");
 		IotHubClientProtocol protocol = IotHubClientProtocol.valueOf(protocolStr);
 		localNode.add(id, new LocalDeviceNode(this, id, protocol));
@@ -228,10 +233,10 @@ public class IotHubNode extends RemovableNode {
 	public ActionResult readMessages(DSInfo actionInfo, ActionInvocation invocation) {
 		final DSAction action = actionInfo.getAction();
 		DSMap parameters = invocation.getParameters();
-		String name = parameters.getString("EventHub_Compatible_Name");
-		String endpt = parameters.getString("EventHub_Compatible_Endpoint");
+		String name = parameters.getString("EventHub Compatible Name");
+		String endpt = parameters.getString("EventHub Compatible Endpoint");
 		String connStr = endpt + ";EntityPath=" + name;
-		String partitionId = parameters.getString("Partition_ID");
+		String partitionId = parameters.getString("Partition ID");
 		String startStr = parameters.getString("Start Time");
 		Instant start = null;
 		if (startStr != null) {
@@ -275,10 +280,10 @@ public class IotHubNode extends RemovableNode {
 				if (cols == null) {
 					cols = new ArrayList<DSMap>();
 					cols.add(Util.makeColumn("Offset", DSValueType.STRING));
-					cols.add(Util.makeColumn("Sequence_Number", DSValueType.NUMBER));
-					cols.add(Util.makeColumn("Enqueued_Time", DSValueType.STRING));
-					cols.add(Util.makeColumn("Device_ID", DSValueType.STRING));
-					cols.add(Util.makeColumn("Message_Payload", DSValueType.STRING));
+					cols.add(Util.makeColumn("Sequence Number", DSValueType.NUMBER));
+					cols.add(Util.makeColumn("Enqueued Time", DSValueType.STRING));
+					cols.add(Util.makeColumn("Device ID", DSValueType.STRING));
+					cols.add(Util.makeColumn("Message Payload", DSValueType.STRING));
 					cols.add(Util.makeColumn("Properties", DSValueType.MAP));
 				}
 				return cols.iterator();
@@ -393,12 +398,12 @@ public class IotHubNode extends RemovableNode {
 			public Iterator<DSMap> getColumns() {
 				if (cols == null) {
 					cols = new ArrayList<DSMap>();
-					cols.add(Util.makeColumn("Enqueued_Time", DSValueType.STRING));
-					cols.add(Util.makeColumn("Device_ID", DSValueType.STRING));
-					cols.add(Util.makeColumn("Blob_URI", DSValueType.STRING));
-					cols.add(Util.makeColumn("Blob_Name", DSValueType.STRING));
-					cols.add(Util.makeColumn("Last_Updated", DSValueType.STRING));
-					cols.add(Util.makeColumn("Blob_Size(Bytes)", DSValueType.NUMBER));
+					cols.add(Util.makeColumn("Enqueued Time", DSValueType.STRING));
+					cols.add(Util.makeColumn("Device ID", DSValueType.STRING));
+					cols.add(Util.makeColumn("Blob URI", DSValueType.STRING));
+					cols.add(Util.makeColumn("Blob Name", DSValueType.STRING));
+					cols.add(Util.makeColumn("Last Updated", DSValueType.STRING));
+					cols.add(Util.makeColumn("Blob Size(Bytes)", DSValueType.NUMBER));
 				}
 				return cols.iterator();
 			}

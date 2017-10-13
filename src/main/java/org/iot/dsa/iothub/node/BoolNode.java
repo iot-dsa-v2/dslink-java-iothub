@@ -3,6 +3,11 @@ package org.iot.dsa.iothub.node;
 import org.iot.dsa.node.DSBool;
 import org.iot.dsa.node.DSValueType;
 
+/**
+ * A node that is also a Boolean value.
+ *
+ * @author Daniel Shapiro
+ */
 public class BoolNode extends ValueNode {
 	
 	public BoolNode() {

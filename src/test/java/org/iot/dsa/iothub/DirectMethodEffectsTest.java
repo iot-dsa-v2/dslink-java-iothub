@@ -67,7 +67,7 @@ public class DirectMethodEffectsTest {
 		
 		when(recvDev.getDirectMethod(method)).thenReturn(methodNode);
 		DSRequesterSession session = mock(DSRequesterSession.class);
-		Main m = new Main();
+		RootNode m = new RootNode();
 		m.onConnected(session);
 		
 		

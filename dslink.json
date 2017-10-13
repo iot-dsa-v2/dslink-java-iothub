@@ -1,92 +1,80 @@
 {
-  "name": "dslink-java-iothub",
-  "version": "0.0.9",
+  "name": "dslink-java-v2-iothub",
+  "version": "1.0.0.0",
   "description": "Azure IoT Hub DSLink",
-  "license": "ISC",
-  "author": {
-    "name": "Daniel Shapiro",
-    "email": "support@acuitybrands.com"
-  },
-  "main": "bin/dslink-java-iothub",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/IOT-DSA/dslink-java-iothub"
-  },
-  "bugs": {
-    "url": "https://github.com/IOT-DSA/dslink-java-iothub/issues"
-  },
+  "main": "bin/dslink-java-v2-iothub",
   "configs": {
-    "broker": {
-      "description": "URL to broker.",
-      "type": "url",
-      "value": null,
-      "required": true
-    },
-    "key": {
-      "description": "Path to public/private key pair.",
-      "type": "path",
-      "value": ".key",
-      "required": true
-    },
-    "nodes": {
-      "description": "Path to configuration database.",
-      "type": "path",
-      "value": "nodes.json",
-      "required": true
-    },
-    "rootName": {
-      "description": "Name of the root node of the link.",
-      "type": "string",
-      "value": "IoT Hub",
-      "required": true
-    },
     "rootType": {
-      "description": "Type of the root node of the link.",
+      "desc1": "*************** THIS IS REQUIRED AND MUST BE CHANGED ***************",
+      "desc2": "Fully qualified class name of the root node of the link.",
       "type": "string",
-      "value": "org.iot.dsa.iothub.Main",
-      "required": true
+      "value": "org.iot.dsa.iothub.RootNode"
+    },
+    "broker": {
+      "desc1": "*************** OPTIONAL CONFIGS IN ALPHABETICAL ORDER ***************",
+      "desc2": "URL to broker.",
+      "type": "url",
+      "value": null
     },
     "connectionType": {
-      "description": "Can be specified to override the default connection type.",
+      "desc": "Can be specified to override the default connection type.",
       "type": "string",
-      "value": null,
-      "required": false
+      "value": null
+    },
+    "isRequester": {
+      "desc": "Whether or not the link is a requester.",
+      "type": "boolean",
+      "value": false
+    },
+    "isResponder": {
+      "desc": "Whether or not the link is a responder.",
+      "type": "boolean",
+      "value": true
+    },
+    "key": {
+      "desc": "Path to public/private key pair.",
+      "type": "path",
+      "value": ".key"
     },
     "log": {
-      "description": "finest, finer, fine, config, info, warning or severe",
-      "type": "string",
-      "value": "finest",
-      "required": false
+      "desc": "debug, info, warn, error, none",
+      "type": "enum",
+      "value": "info"
     },
     "logFile": {
-      "description": "Path to the log file.",
+      "desc": "Path to the log file.",
       "type": "path",
-      "value": null,
-      "required": false
+      "value": null
+    },
+    "nodes": {
+      "desc": "Path to configuration database.",
+      "type": "path",
+      "value": null
     },
     "readTimeout": {
-      "description": "Millis timeout for reading from the connection.",
+      "desc": "Millis timeout for reading from the connection.",
       "type": "number",
-      "value": 60000,
-      "required": false
+      "value": 60000
+    },
+    "saveInterval": {
+      "desc": "How often to backup the node database in minutes.",
+      "type": "number",
+      "value": 60
     },
     "stableDelay": {
-      "description": "Millis after the node tree is started before calling stable.",
+      "desc": "Millis after the node tree is started before calling stable.",
       "type": "number",
-      "value": 5000,
-      "required": false
+      "value": 5000
     },
     "token": {
-      "description": "Authentication token for the broker.",
+      "desc": "Authentication token for the broker.",
       "type": "string",
-      "value": null,
-      "required": false
+      "value": null
     },
     "transportFactory": {
-      "description": "Can be specified to override the default standalone transport.",
+      "desc": "Can be specified to override the default standalone transport.",
       "type": "string",
-      "value": null,
-      "required": false
+      "value": null
     }
   }
 }

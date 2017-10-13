@@ -15,7 +15,11 @@ import org.iot.dsa.node.DSMetadata;
 import org.iot.dsa.node.DSString;
 import org.iot.dsa.node.DSValueType;
 
-
+/**
+ * Miscellaneous utility methods.
+ *
+ * @author Daniel Shapiro
+ */
 public class Util {
 	
 	public static DSMap makeColumn(String name, DSValueType type) {

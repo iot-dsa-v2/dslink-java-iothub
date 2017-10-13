@@ -4,6 +4,11 @@ import org.iot.dsa.iothub.Util;
 import org.iot.dsa.node.DSMap;
 import org.iot.dsa.node.DSValueType;
 
+/**
+ * A node that is also a Map value.
+ *
+ * @author Daniel Shapiro
+ */
 public class MapNode extends ValueNode {
 	
 	public MapNode() {

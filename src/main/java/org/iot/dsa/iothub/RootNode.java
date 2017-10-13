@@ -5,18 +5,23 @@ import org.iot.dsa.dslink.DSRequesterInterface;
 import org.iot.dsa.dslink.DSRootNode;
 import org.iot.dsa.node.DSInfo;
 import org.iot.dsa.node.DSMap;
-import org.iot.dsa.node.DSString;
+import org.iot.dsa.node.DSValueType;
 import org.iot.dsa.node.action.ActionInvocation;
 import org.iot.dsa.node.action.ActionResult;
 import org.iot.dsa.node.action.DSAction;
 
-public class Main extends DSRootNode implements DSRequester {
+/**
+ * This is the root node of the link.
+ *
+ * @author Daniel Shapiro
+ */
+public class RootNode extends DSRootNode implements DSRequester {
 	
 	private static DSRequesterInterface session;
     
     private void handleAddIotHub(DSMap parameters) {
     	String name = parameters.getString("Name");
-    	String connString = parameters.getString("Connection_String");
+    	String connString = parameters.getString("Connection String");
     	
     	IotHubNode hub = new IotHubNode(connString);
     	add(name, hub);
@@ -28,13 +33,13 @@ public class Main extends DSRootNode implements DSRequester {
     	DSAction act = new DSAction() {
 			@Override
 			 public ActionResult invoke(DSInfo info, ActionInvocation invocation) {
-				((Main) info.getParent()).handleAddIotHub(invocation.getParameters());
+				((RootNode) info.getParent()).handleAddIotHub(invocation.getParameters());
 				return null;
 			}
     	};
-    	act.addDefaultParameter("Name", DSString.valueOf("DanielFreeHub"), null);
-    	act.addDefaultParameter("Connection_String", DSString.valueOf("HostName=DanielFreeHub.azure-devices.net;SharedAccessKeyName=iothubowner;SharedAccessKey=mBIqQQgZsYgvJ/la4G7KkHZMBzTX4pk3HvF2aabB/LU="), null);
-    	declareDefault("Add_IoT_Hub", act);
+    	act.addParameter("Name", DSValueType.STRING, null);
+    	act.addParameter("Connection String", DSValueType.STRING, null);
+    	declareDefault("Add IoT Hub", act);
     }
     
     public static DSRequesterInterface getRequesterSession() {
@@ -43,7 +48,7 @@ public class Main extends DSRootNode implements DSRequester {
 
 	@Override
 	public void onConnected(DSRequesterInterface session) {
-		Main.session = session;
+		RootNode.session = session;
 	}
 
 	@Override

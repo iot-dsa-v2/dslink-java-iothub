@@ -7,6 +7,11 @@ import org.iot.dsa.node.DSIValue;
 import org.iot.dsa.node.DSInfo;
 import org.iot.dsa.node.DSNode;
 
+/**
+ * The base class for a node that is also a value, used to represent Device Twin Properties and Tags.
+ *
+ * @author Daniel Shapiro
+ */
 public abstract class ValueNode extends RemovableNode implements DSIValue, TwinProperty {
 	
 	private DSInfo value;

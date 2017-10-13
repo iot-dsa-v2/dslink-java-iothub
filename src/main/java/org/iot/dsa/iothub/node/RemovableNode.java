@@ -6,7 +6,11 @@ import org.iot.dsa.node.action.ActionInvocation;
 import org.iot.dsa.node.action.ActionResult;
 import org.iot.dsa.node.action.DSAction;
 
-
+/**
+ * The base class for any node that has a "remove" action.
+ *
+ * @author Daniel Shapiro
+ */
 public class RemovableNode extends DSNode {
 	
 	@Override

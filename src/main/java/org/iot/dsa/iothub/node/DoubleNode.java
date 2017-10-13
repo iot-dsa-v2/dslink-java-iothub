@@ -2,6 +2,11 @@ package org.iot.dsa.iothub.node;
 
 import org.iot.dsa.node.DSDouble;
 
+/**
+ * A node that is also a Double value.
+ *
+ * @author Daniel Shapiro
+ */
 public class DoubleNode extends NumberNode {
 	
 	public DoubleNode() {
