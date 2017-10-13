@@ -8,18 +8,18 @@ import org.iot.dsa.node.DSLong;
  * @author Daniel Shapiro
  */
 public class LongNode extends NumberNode {
-	
-	public LongNode() {
-		setValue(DSLong.NULL);
-	}
 
-	public void setValue(DSLong value) {
-		super.setValue(value);
-	}
+    public LongNode() {
+        setValue(DSLong.NULL);
+    }
 
-	@Override
-	public Object getObject() {
-		return toElement().toLong();
-	}
-	
+    public void setValue(DSLong value) {
+        super.setValue(value);
+    }
+
+    @Override
+    public Object getObject() {
+        return toElement().toLong();
+    }
+
 }

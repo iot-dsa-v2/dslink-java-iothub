@@ -8,9 +8,9 @@ import org.iot.dsa.node.DSInfo;
  * @author Daniel Shapiro
  */
 public interface TwinPropertyContainer {
-	
-	public void onChange(DSInfo info);
-	
-	public void onDelete(DSInfo info);
+
+    public void onChange(DSInfo info);
+
+    public void onDelete(DSInfo info);
 
 }

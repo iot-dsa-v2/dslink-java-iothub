@@ -8,18 +8,18 @@ import org.iot.dsa.node.DSDouble;
  * @author Daniel Shapiro
  */
 public class DoubleNode extends NumberNode {
-	
-	public DoubleNode() {
-		setValue(DSDouble.valueOf(0));
-	}
 
-	public void setValue(DSDouble value) {
-		super.setValue(value);
-	}
+    public DoubleNode() {
+        setValue(DSDouble.valueOf(0));
+    }
 
-	@Override
-	public Object getObject() {
-		return toElement().toDouble();
-	}
+    public void setValue(DSDouble value) {
+        super.setValue(value);
+    }
+
+    @Override
+    public Object getObject() {
+        return toElement().toDouble();
+    }
 
 }

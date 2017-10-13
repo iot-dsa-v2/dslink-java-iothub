@@ -9,23 +9,23 @@ import org.iot.dsa.node.DSValueType;
  * @author Daniel Shapiro
  */
 public class ListNode extends ValueNode {
-	
-	public ListNode() {
-		setValue(new DSList());
-	}
 
-	@Override
-	public DSValueType getValueType() {
-		return DSValueType.LIST;
-	}
-	
-	public void setValue(DSList value) {
-		super.setValue(value);
-	}
+    public ListNode() {
+        setValue(new DSList());
+    }
 
-	@Override
-	public Object getObject() {
-		return toElement().toList();
-	}
+    @Override
+    public DSValueType getValueType() {
+        return DSValueType.LIST;
+    }
+
+    public void setValue(DSList value) {
+        super.setValue(value);
+    }
+
+    @Override
+    public Object getObject() {
+        return toElement().toList();
+    }
 
 }

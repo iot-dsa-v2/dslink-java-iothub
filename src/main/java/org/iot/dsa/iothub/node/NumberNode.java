@@ -9,9 +9,9 @@ import org.iot.dsa.node.DSValueType;
  */
 public abstract class NumberNode extends ValueNode {
 
-	@Override
-	public DSValueType getValueType() {
-		return DSValueType.NUMBER;
-	}
+    @Override
+    public DSValueType getValueType() {
+        return DSValueType.NUMBER;
+    }
 
 }

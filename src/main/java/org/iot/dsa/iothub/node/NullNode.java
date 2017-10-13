@@ -9,23 +9,23 @@ import org.iot.dsa.node.DSValueType;
  * @author Daniel Shapiro
  */
 public class NullNode extends ValueNode {
-	
-	public NullNode() {
-		setValue(DSNull.NULL);
-	}
 
-	@Override
-	public DSValueType getValueType() {
-		return null;
-	}
-	
-	public void setValue(DSNull value) {
-		super.setValue(value);
-	}
+    public NullNode() {
+        setValue(DSNull.NULL);
+    }
 
-	@Override
-	public Object getObject() {
-		return null;
-	}
+    @Override
+    public DSValueType getValueType() {
+        return null;
+    }
+
+    public void setValue(DSNull value) {
+        super.setValue(value);
+    }
+
+    @Override
+    public Object getObject() {
+        return null;
+    }
 
 }

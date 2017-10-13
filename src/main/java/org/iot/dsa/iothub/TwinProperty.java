@@ -8,10 +8,10 @@ import org.iot.dsa.node.DSIObject;
  * @author Daniel Shapiro
  */
 public interface TwinProperty extends DSIObject {
-	
+
     /**
      * @return My value as a standard java object.
      */
-	public Object getObject();
+    public Object getObject();
 
 }

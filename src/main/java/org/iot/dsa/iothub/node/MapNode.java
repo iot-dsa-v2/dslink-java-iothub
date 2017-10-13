@@ -10,23 +10,23 @@ import org.iot.dsa.node.DSValueType;
  * @author Daniel Shapiro
  */
 public class MapNode extends ValueNode {
-	
-	public MapNode() {
-		setValue(new DSMap());
-	}
 
-	@Override
-	public DSValueType getValueType() {
-		return DSValueType.MAP;
-	}
-	
-	public void setValue(DSMap value) {
-		super.setValue(value);
-	}
+    public MapNode() {
+        setValue(new DSMap());
+    }
 
-	@Override
-	public Object getObject() {
-		return Util.dsMapToMap(toElement().toMap());
-	}
+    @Override
+    public DSValueType getValueType() {
+        return DSValueType.MAP;
+    }
+
+    public void setValue(DSMap value) {
+        super.setValue(value);
+    }
+
+    @Override
+    public Object getObject() {
+        return Util.dsMapToMap(toElement().toMap());
+    }
 
 }

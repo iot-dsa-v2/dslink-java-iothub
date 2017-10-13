@@ -12,24 +12,24 @@ import org.iot.dsa.node.action.DSAction;
  * @author Daniel Shapiro
  */
 public class RemovableNode extends DSNode {
-	
-	@Override
-	protected void declareDefaults() {
-		declareDefault("Remove", makeRemoveAction());
-	}
 
-	protected DSAction makeRemoveAction() {
-		return new DSAction() {
-			@Override
-			public ActionResult invoke(DSInfo info, ActionInvocation invocation) {
-		        ((RemovableNode)info.getParent()).delete();
-		        return null;
-		    }
-		};
-	}
-	
-	public void delete() {
-		getParent().remove(getInfo());
-	}
-	
+    @Override
+    protected void declareDefaults() {
+        declareDefault("Remove", makeRemoveAction());
+    }
+
+    protected DSAction makeRemoveAction() {
+        return new DSAction() {
+            @Override
+            public ActionResult invoke(DSInfo info, ActionInvocation invocation) {
+                ((RemovableNode) info.getParent()).delete();
+                return null;
+            }
+        };
+    }
+
+    public void delete() {
+        getParent().remove(getInfo());
+    }
+
 }

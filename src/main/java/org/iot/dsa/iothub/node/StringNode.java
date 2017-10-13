@@ -9,23 +9,23 @@ import org.iot.dsa.node.DSValueType;
  * @author Daniel Shapiro
  */
 public class StringNode extends ValueNode {
-	
-	public StringNode() {
-		setValue(DSString.EMPTY);
-	}
 
-	@Override
-	public DSValueType getValueType() {
-		return DSValueType.STRING;
-	}
-	
-	public void setValue(DSString value) {
-		super.setValue(value);
-	}
+    public StringNode() {
+        setValue(DSString.EMPTY);
+    }
 
-	@Override
-	public Object getObject() {
-		return toElement().toString();
-	}
+    @Override
+    public DSValueType getValueType() {
+        return DSValueType.STRING;
+    }
+
+    public void setValue(DSString value) {
+        super.setValue(value);
+    }
+
+    @Override
+    public Object getObject() {
+        return toElement().toString();
+    }
 
 }
