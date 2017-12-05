@@ -1,7 +1,6 @@
 package org.iot.dsa.iothub;
 
-import org.iot.dsa.dslink.DSRequester;
-import org.iot.dsa.dslink.DSRequesterInterface;
+import org.iot.dsa.dslink.DSIRequester;
 import org.iot.dsa.dslink.DSRootNode;
 import org.iot.dsa.node.DSInfo;
 import org.iot.dsa.node.DSMap;
@@ -15,9 +14,9 @@ import org.iot.dsa.node.action.DSAction;
  *
  * @author Daniel Shapiro
  */
-public class RootNode extends DSRootNode implements DSRequester {
-
-    private static DSRequesterInterface session;
+public class RootNode extends DSRootNode {
+    
+    private static DSIRequester requester;
 
     private void handleAddIotHub(DSMap parameters) {
         String name = parameters.getString("Name");
@@ -41,17 +40,17 @@ public class RootNode extends DSRootNode implements DSRequester {
         act.addParameter("Connection String", DSValueType.STRING, null);
         declareDefault("Add IoT Hub", act);
     }
-
-    public static DSRequesterInterface getRequesterSession() {
-        return session;
+    
+    @Override
+    protected void onStarted() {
+        setRequester(getLink().getConnection().getRequester());
     }
 
-    @Override
-    public void onConnected(DSRequesterInterface session) {
-        RootNode.session = session;
+    public static DSIRequester getRequester() {
+        return requester;
     }
 
-    @Override
-    public void onDisconnected(DSRequesterInterface session) {}
-
+    public static void setRequester(DSIRequester requester) {
+        RootNode.requester = requester;
+    }
 }

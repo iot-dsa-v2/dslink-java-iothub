@@ -24,7 +24,7 @@
     "isRequester": {
       "desc": "Whether or not the link is a requester.",
       "type": "boolean",
-      "value": false
+      "value": true
     },
     "isResponder": {
       "desc": "Whether or not the link is a responder.",

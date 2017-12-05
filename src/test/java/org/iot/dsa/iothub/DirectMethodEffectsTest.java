@@ -1,20 +1,17 @@
 package org.iot.dsa.iothub;
 
-import static org.mockito.Matchers.argThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Matchers.any;
+import org.iot.dsa.dslink.DSIRequester;
 import org.iot.dsa.dslink.DSRequestException;
-import org.iot.dsa.dslink.requester.OutboundInvokeRequest;
-import org.iot.dsa.dslink.requester.OutboundRequest;
 import org.iot.dsa.node.DSInfo;
 import org.iot.dsa.node.DSMap;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
-import org.mockito.ArgumentMatcher;
-import com.acuity.iot.dsa.dslink.DSRequesterSession;
 import com.microsoft.azure.sdk.iot.device.IotHubClientProtocol;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
@@ -67,9 +64,8 @@ public class DirectMethodEffectsTest {
         DirectMethodNode methodNode = new DirectMethodNode(method, path);
 
         when(recvDev.getDirectMethod(method)).thenReturn(methodNode);
-        DSRequesterSession session = mock(DSRequesterSession.class);
-        RootNode m = new RootNode();
-        m.onConnected(session);
+        DSIRequester requester = mock(DSIRequester.class);
+        RootNode.setRequester(requester);
 
 
         RemoteDeviceNode sendDev = new RemoteDeviceNode(sendHub, deviceId);
@@ -82,16 +78,18 @@ public class DirectMethodEffectsTest {
         } catch (DSRequestException e) {
         }
 
-        class IsMatchingRequest extends ArgumentMatcher<OutboundRequest> {
-            public boolean matches(Object o) {
-                if (o instanceof OutboundInvokeRequest) {
-                    OutboundInvokeRequest req = (OutboundInvokeRequest) o;
-                    return req.getPath().equals(path) && req.getParameters().equals(payload);
-                }
-                return false;
-            }
-        }
+//        class IsMatchingPath extends ArgumentMatcher<String> {
+//            public boolean matches(Object o) {
+//                return o.equals(path);
+//            }
+//        }
+//        
+//        class IsMatchingParams extends ArgumentMatcher<DSMap> {
+//            public boolean matches(Object o) {
+//                    return o.equals(payload);
+//            }
+//        }
 
-        verify(session).sendRequest(argThat(new IsMatchingRequest()));
+        verify(requester).invoke(path, payload, any());
     }
 }
