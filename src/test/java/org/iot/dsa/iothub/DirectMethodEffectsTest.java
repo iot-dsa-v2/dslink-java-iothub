@@ -65,7 +65,7 @@ public class DirectMethodEffectsTest {
 
         when(recvDev.getDirectMethod(method)).thenReturn(methodNode);
         DSIRequester requester = mock(DSIRequester.class);
-        RootNode.setRequester(requester);
+        MainNode.setRequester(requester);
 
 
         RemoteDeviceNode sendDev = new RemoteDeviceNode(sendHub, deviceId);

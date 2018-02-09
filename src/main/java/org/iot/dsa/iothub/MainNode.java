@@ -1,7 +1,9 @@
 package org.iot.dsa.iothub;
 
 import org.iot.dsa.dslink.DSIRequester;
-import org.iot.dsa.dslink.DSRootNode;
+import org.iot.dsa.dslink.DSLinkConnection;
+import org.iot.dsa.dslink.DSLinkConnection.Listener;
+import org.iot.dsa.dslink.DSMainNode;
 import org.iot.dsa.node.DSInfo;
 import org.iot.dsa.node.DSMap;
 import org.iot.dsa.node.DSValueType;
@@ -14,7 +16,7 @@ import org.iot.dsa.node.action.DSAction;
  *
  * @author Daniel Shapiro
  */
-public class RootNode extends DSRootNode {
+public class MainNode extends DSMainNode {
     
     private static DSIRequester requester;
 
@@ -32,7 +34,7 @@ public class RootNode extends DSRootNode {
         DSAction act = new DSAction() {
             @Override
             public ActionResult invoke(DSInfo info, ActionInvocation invocation) {
-                ((RootNode) info.getParent()).handleAddIotHub(invocation.getParameters());
+                ((MainNode) info.getParent()).handleAddIotHub(invocation.getParameters());
                 return null;
             }
         };
@@ -43,7 +45,16 @@ public class RootNode extends DSRootNode {
     
     @Override
     protected void onStarted() {
-        setRequester(getLink().getConnection().getRequester());
+        getLink().getConnection().addListener(new Listener() {
+            @Override
+            public void onConnect(DSLinkConnection connection) {
+                MainNode.setRequester(getLink().getConnection().getRequester());
+            }
+
+            @Override
+            public void onDisconnect(DSLinkConnection connection) {
+            }
+        });
     }
 
     public static DSIRequester getRequester() {
@@ -51,6 +62,6 @@ public class RootNode extends DSRootNode {
     }
 
     public static void setRequester(DSIRequester requester) {
-        RootNode.requester = requester;
+        MainNode.requester = requester;
     }
 }

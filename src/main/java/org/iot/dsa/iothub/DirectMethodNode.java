@@ -14,6 +14,7 @@ import org.iot.dsa.node.DSInfo;
 import org.iot.dsa.node.DSList;
 import org.iot.dsa.node.DSMap;
 import org.iot.dsa.node.DSString;
+import org.iot.dsa.node.event.DSValueTopic;
 import com.microsoft.azure.sdk.iot.device.DeviceTwin.DeviceMethodData;
 
 /**
@@ -128,7 +129,7 @@ public class DirectMethodNode extends RemovableNode {
                 }
             };
             try {
-                DSIRequester requester = RootNode.getRequester();
+                DSIRequester requester = MainNode.getRequester();
                 requester.invoke(thepath, parameters, handler);
             } catch (Exception e) {
                 return new DeviceMethodData(METHOD_FAILED, e.getMessage());
@@ -150,7 +151,7 @@ public class DirectMethodNode extends RemovableNode {
         try {
             invokeList.add(new DSMap().put("Timestamp", dateFormat.format(new Date()))
                     .put("Parameters", parameters));
-            childChanged(invokes);
+            fire(VALUE_TOPIC, DSValueTopic.Event.CHILD_CHANGED, invokes);
         } catch (Exception e) {
             warn(e);
         }

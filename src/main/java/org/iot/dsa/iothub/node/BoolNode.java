@@ -1,6 +1,7 @@
 package org.iot.dsa.iothub.node;
 
 import org.iot.dsa.node.DSBool;
+import org.iot.dsa.node.DSIValue;
 import org.iot.dsa.node.DSValueType;
 
 /**
@@ -10,22 +11,23 @@ import org.iot.dsa.node.DSValueType;
  */
 public class BoolNode extends ValueNode {
 
-    public BoolNode() {
-        setValue(DSBool.NULL);
-    }
-
     @Override
     public DSValueType getValueType() {
         return DSValueType.BOOL;
     }
 
-    public void setValue(DSBool value) {
-        super.setValue(value);
+    public void updateValue(DSBool value) {
+        super.updateValue(value);
     }
 
     @Override
     public Object getObject() {
         return toElement().toBoolean();
+    }
+
+    @Override
+    protected DSIValue getNullValue() {
+        return DSBool.NULL;
     }
 
 }
