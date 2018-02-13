@@ -5,6 +5,7 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.eq;
 import org.iot.dsa.dslink.DSIRequester;
 import org.iot.dsa.dslink.DSRequestException;
 import org.iot.dsa.node.DSInfo;
@@ -40,8 +41,8 @@ public class DirectMethodEffectsTest {
         RemoteDeviceNode sendDev = new RemoteDeviceNode(sendHub, deviceId);
         DSInfo actionInfo = mock(DSInfo.class);
         when(actionInfo.getAction()).thenReturn(null);
-        DSMap parameters = new DSMap().put("Method_Name", method).put("Response_Timeout", 30)
-                .put("Connect_Timeout", 5).put("Payload", payload.toString());
+        DSMap parameters = new DSMap().put("Method Name", method).put("Response Timeout", 30)
+                .put("Connect Timeout", 5).put("Payload", payload.toString());
         sendDev.invokeDirectMethod(actionInfo, parameters);
 
         verify(methodNode).recordInvoke(payload);
@@ -71,8 +72,8 @@ public class DirectMethodEffectsTest {
         RemoteDeviceNode sendDev = new RemoteDeviceNode(sendHub, deviceId);
         DSInfo actionInfo = mock(DSInfo.class);
         when(actionInfo.getAction()).thenReturn(null);
-        DSMap parameters = new DSMap().put("Method_Name", method).put("Response_Timeout", 30)
-                .put("Connect_Timeout", 5).put("Payload", payload.toString());
+        DSMap parameters = new DSMap().put("Method Name", method).put("Response Timeout", 30)
+                .put("Connect Timeout", 5).put("Payload", payload.toString());
         try {
             sendDev.invokeDirectMethod(actionInfo, parameters);
         } catch (DSRequestException e) {
@@ -90,6 +91,6 @@ public class DirectMethodEffectsTest {
 //            }
 //        }
 
-        verify(requester).invoke(path, payload, any());
+        verify(requester).invoke(eq(path), eq(payload), any());
     }
 }

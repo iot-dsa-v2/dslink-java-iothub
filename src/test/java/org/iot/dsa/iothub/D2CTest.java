@@ -58,9 +58,9 @@ public class D2CTest {
         DSInfo actionInfo1 = mock(DSInfo.class);
         when(actionInfo1.getAction()).thenReturn(null);
         ActionInvocation invocation = mock(ActionInvocation.class);
-        DSMap parameters1 = new DSMap().put("EventHub_Compatible_Name", DANIEL_EVENT_NAME)
-                .put("EventHub_Compatible_Endpoint", DANIEL_EVENT_ENDPT)
-                .put("Partition_ID", partitionId);
+        DSMap parameters1 = new DSMap().put("EventHub Compatible Name", DANIEL_EVENT_NAME)
+                .put("EventHub Compatible Endpoint", DANIEL_EVENT_ENDPT)
+                .put("Partition ID", partitionId);
         when(invocation.getParameters()).thenReturn(parameters1);
         when(invocation.isOpen()).thenReturn(done);
         recvHub.readMessages(actionInfo1, invocation);
