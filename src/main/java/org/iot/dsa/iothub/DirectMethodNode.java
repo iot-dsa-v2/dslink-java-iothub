@@ -6,7 +6,6 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import org.iot.dsa.dslink.DSIRequester;
 import org.iot.dsa.dslink.requester.AbstractInvokeHandler;
-import org.iot.dsa.dslink.requester.OutboundInvokeHandler;
 import org.iot.dsa.io.json.JsonReader;
 import org.iot.dsa.iothub.node.RemovableNode;
 import org.iot.dsa.node.DSIObject;
@@ -87,47 +86,7 @@ public class DirectMethodNode extends RemovableNode {
         if (!path.isEmpty()) {
             final DSList results = new DSList();
             final String thepath = path;
-            final OutboundInvokeHandler handler = new AbstractInvokeHandler() {
-                @Override
-                public void onError(String type, String msg, String detail) {
-                }
-                
-                @Override
-                public void onClose() {
-                    
-                }
-                
-                @Override
-                public void onUpdate(DSList row) {
-                    synchronized (results) {
-                        results.add(row);
-                    }
-                }
-                
-                @Override
-                public void onTableMeta(DSMap map) {                    
-                }
-                
-                @Override
-                public void onReplace(int start, int end, DSList rows) {
-                }
-                
-                @Override
-                public void onMode(Mode mode) {
-                    synchronized (results) {
-                        results.notifyAll();
-                    }
-                    getStream().closeStream();
-                }
-                
-                @Override
-                public void onInsert(int index, DSList rows) {                    
-                }
-                
-                @Override
-                public void onColumns(DSList list) {
-                }
-            };
+            final DirectMethodInvokeHandler handler = new DirectMethodInvokeHandler(results);
             try {
                 DSIRequester requester = MainNode.getRequester();
                 requester.invoke(thepath, parameters, handler);
@@ -136,9 +95,11 @@ public class DirectMethodNode extends RemovableNode {
             }
 
             synchronized (results) {
-                try {
-                    results.wait();
-                } catch (InterruptedException e) {
+                while (!handler.done) {
+                    try {
+                        results.wait();
+                    } catch (InterruptedException e) {
+                    }
                 }
             }
             return new DeviceMethodData(METHOD_SUCCESS, results.toString());
@@ -154,6 +115,61 @@ public class DirectMethodNode extends RemovableNode {
             fire(VALUE_TOPIC, DSValueTopic.Event.CHILD_CHANGED, invokes);
         } catch (Exception e) {
             warn(e);
+        }
+    }
+    
+    private static class DirectMethodInvokeHandler extends AbstractInvokeHandler {
+        boolean done = false;
+        private DSList results;
+        
+        DirectMethodInvokeHandler(DSList results) {
+            this.results = results;
+        }
+
+        @Override
+        public void onColumns(DSList list) {
+        }
+
+        @Override
+        public void onInsert(int index, DSList rows) {
+        }
+
+        @Override
+        public void onMode(Mode mode) {
+            if (!done) {
+                synchronized (results) {
+                    results.notifyAll();
+                    done = true;
+                }
+                getStream().closeStream();
+            }
+        }
+
+        @Override
+        public void onReplace(int start, int end, DSList rows) {
+        }
+
+        @Override
+        public void onTableMeta(DSMap map) {
+        }
+
+        @Override
+        public void onUpdate(DSList row) {
+            synchronized (results) {
+                results.add(row.copy());
+            }
+        }
+
+        @Override
+        public void onClose() {
+            synchronized (results) {
+                results.notifyAll();
+                done = true;
+            }
+        }
+
+        @Override
+        public void onError(String type, String msg, String detail) {
         }
     }
 
