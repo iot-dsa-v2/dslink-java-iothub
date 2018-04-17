@@ -46,12 +46,12 @@ public class Util {
     public static TwinProperty objectToValueNode(Object o) {
         if (o instanceof Number) {
             DoubleNode vn = new DoubleNode();
-            vn.setValue(DSDouble.valueOf(((Number) o).doubleValue()));
+            vn.updateValue(DSDouble.valueOf(((Number) o).doubleValue()));
             return vn;
         }
         if (o instanceof Boolean) {
             BoolNode vn = new BoolNode();
-            vn.setValue(DSBool.valueOf(((Boolean) o).booleanValue()));
+            vn.updateValue(DSBool.valueOf(((Boolean) o).booleanValue()));
             return vn;
         }
         if (o instanceof Map) {
@@ -64,7 +64,7 @@ public class Util {
         }
 
         StringNode vn = new StringNode();
-        vn.setValue(DSString.valueOf(o.toString()));
+        vn.updateValue(DSString.valueOf(o.toString()));
         return vn;
     }
 

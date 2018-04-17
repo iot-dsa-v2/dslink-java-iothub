@@ -4,11 +4,8 @@ import java.text.DateFormat;
 import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.Iterator;
-import org.iot.dsa.dslink.DSRequesterInterface;
-import org.iot.dsa.dslink.requester.InboundInvokeResponse;
-import org.iot.dsa.dslink.requester.OutboundInvokeRequest;
-import org.iot.dsa.dslink.requester.OutboundRequest;
+import org.iot.dsa.dslink.DSIRequester;
+import org.iot.dsa.dslink.requester.AbstractInvokeHandler;
 import org.iot.dsa.io.json.JsonReader;
 import org.iot.dsa.iothub.node.RemovableNode;
 import org.iot.dsa.node.DSIObject;
@@ -16,7 +13,7 @@ import org.iot.dsa.node.DSInfo;
 import org.iot.dsa.node.DSList;
 import org.iot.dsa.node.DSMap;
 import org.iot.dsa.node.DSString;
-import org.iot.dsa.security.DSPermission;
+import org.iot.dsa.node.event.DSValueTopic;
 import com.microsoft.azure.sdk.iot.device.DeviceTwin.DeviceMethodData;
 
 /**
@@ -89,47 +86,20 @@ public class DirectMethodNode extends RemovableNode {
         if (!path.isEmpty()) {
             final DSList results = new DSList();
             final String thepath = path;
-            OutboundRequest req = new OutboundInvokeRequest() {
-
-                @Override
-                public boolean onResponse(InboundInvokeResponse response) {
-                    Iterator<DSList> iter = response.getRows();
-                    synchronized (results) {
-                        while (iter.hasNext()) {
-                            results.add(iter.next().copy());
-                        }
-                        results.notifyAll();
-                    }
-                    return false;
-                }
-
-                @Override
-                public DSPermission getPermission() {
-                    return null;
-                }
-
-                @Override
-                public String getPath() {
-                    return thepath;
-                }
-
-                @Override
-                public DSMap getParameters() {
-                    // TODO Auto-generated method stub
-                    return parameters;
-                }
-            };
+            final DirectMethodInvokeHandler handler = new DirectMethodInvokeHandler(results);
             try {
-                DSRequesterInterface session = RootNode.getRequesterSession();
-                session.sendRequest(req);
+                DSIRequester requester = MainNode.getRequester();
+                requester.invoke(thepath, parameters, handler);
             } catch (Exception e) {
                 return new DeviceMethodData(METHOD_FAILED, e.getMessage());
             }
 
             synchronized (results) {
-                try {
-                    results.wait();
-                } catch (InterruptedException e) {
+                while (!handler.done) {
+                    try {
+                        results.wait();
+                    } catch (InterruptedException e) {
+                    }
                 }
             }
             return new DeviceMethodData(METHOD_SUCCESS, results.toString());
@@ -142,9 +112,64 @@ public class DirectMethodNode extends RemovableNode {
         try {
             invokeList.add(new DSMap().put("Timestamp", dateFormat.format(new Date()))
                     .put("Parameters", parameters));
-            childChanged(invokes);
+            fire(VALUE_TOPIC, DSValueTopic.Event.CHILD_CHANGED, invokes);
         } catch (Exception e) {
             warn(e);
+        }
+    }
+    
+    private static class DirectMethodInvokeHandler extends AbstractInvokeHandler {
+        boolean done = false;
+        private DSList results;
+        
+        DirectMethodInvokeHandler(DSList results) {
+            this.results = results;
+        }
+
+        @Override
+        public void onColumns(DSList list) {
+        }
+
+        @Override
+        public void onInsert(int index, DSList rows) {
+        }
+
+        @Override
+        public void onMode(Mode mode) {
+            if (!done) {
+                synchronized (results) {
+                    results.notifyAll();
+                    done = true;
+                }
+                getStream().closeStream();
+            }
+        }
+
+        @Override
+        public void onReplace(int start, int end, DSList rows) {
+        }
+
+        @Override
+        public void onTableMeta(DSMap map) {
+        }
+
+        @Override
+        public void onUpdate(DSList row) {
+            synchronized (results) {
+                results.add(row.copy());
+            }
+        }
+
+        @Override
+        public void onClose() {
+            synchronized (results) {
+                results.notifyAll();
+                done = true;
+            }
+        }
+
+        @Override
+        public void onError(String type, String msg, String detail) {
         }
     }
 

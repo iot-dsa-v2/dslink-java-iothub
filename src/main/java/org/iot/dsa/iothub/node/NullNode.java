@@ -1,7 +1,7 @@
 package org.iot.dsa.iothub.node;
 
+import org.iot.dsa.node.DSIValue;
 import org.iot.dsa.node.DSNull;
-import org.iot.dsa.node.DSValueType;
 
 /**
  * A node that is also a Null value.
@@ -10,22 +10,18 @@ import org.iot.dsa.node.DSValueType;
  */
 public class NullNode extends ValueNode {
 
-    public NullNode() {
-        setValue(DSNull.NULL);
-    }
-
-    @Override
-    public DSValueType getValueType() {
-        return null;
-    }
-
-    public void setValue(DSNull value) {
-        super.setValue(value);
+    public void updateValue(DSNull value) {
+        super.updateValue(value);
     }
 
     @Override
     public Object getObject() {
         return null;
+    }
+
+    @Override
+    protected DSIValue getNullValue() {
+        return DSNull.NULL;
     }
 
 }

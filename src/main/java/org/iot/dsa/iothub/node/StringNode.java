@@ -1,5 +1,6 @@
 package org.iot.dsa.iothub.node;
 
+import org.iot.dsa.node.DSIValue;
 import org.iot.dsa.node.DSString;
 import org.iot.dsa.node.DSValueType;
 
@@ -10,22 +11,23 @@ import org.iot.dsa.node.DSValueType;
  */
 public class StringNode extends ValueNode {
 
-    public StringNode() {
-        setValue(DSString.EMPTY);
-    }
-
     @Override
     public DSValueType getValueType() {
         return DSValueType.STRING;
     }
 
-    public void setValue(DSString value) {
-        super.setValue(value);
+    public void updateValue(DSString value) {
+        super.updateValue(value);
     }
 
     @Override
     public Object getObject() {
         return toElement().toString();
+    }
+
+    @Override
+    protected DSIValue getNullValue() {
+        return DSString.EMPTY;
     }
 
 }

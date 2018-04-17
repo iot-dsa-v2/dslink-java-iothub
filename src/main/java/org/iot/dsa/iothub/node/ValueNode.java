@@ -6,6 +6,8 @@ import org.iot.dsa.node.DSElement;
 import org.iot.dsa.node.DSIValue;
 import org.iot.dsa.node.DSInfo;
 import org.iot.dsa.node.DSNode;
+import org.iot.dsa.node.DSValueType;
+import org.iot.dsa.node.event.DSValueTopic.Event;
 
 /**
  * The base class for a node that is also a value, used to represent Device Twin Properties and
@@ -15,38 +17,50 @@ import org.iot.dsa.node.DSNode;
  */
 public abstract class ValueNode extends RemovableNode implements DSIValue, TwinProperty {
 
-    private DSInfo value;
-
+    private DSInfo valueInfo = getInfo("Value");
+    
     @Override
-    public DSIValue restore(DSElement element) {
-        return valueOf(element);
+    protected void declareDefaults() {
+        super.declareDefaults();
+        declareDefault("Value", getNullValue()).setReadOnly(true).setHidden(true);
+    }
+    
+    protected abstract DSIValue getNullValue();
+
+    /**
+     * This fires the NODE_CHANGED topic when the value child changes.  Overrides should call
+     * super.onChildChanged.
+     */
+    @Override
+    public void onChildChanged(DSInfo child) {
+        if (child == valueInfo) {
+            fire(VALUE_TOPIC, Event.NODE_CHANGED, null);
+        }
+    }
+    
+    @Override
+    public DSValueType getValueType() {
+        return valueInfo.getValue().getValueType();
     }
 
-    @Override
-    public DSElement store() {
-        return toElement();
-    }
 
     @Override
     public DSElement toElement() {
-        return value.getValue().toElement();
+        return valueInfo.getValue().toElement();
     }
 
     @Override
     public DSIValue valueOf(DSElement element) {
-        return value.getValue().valueOf(element);
+        return valueInfo.getValue().valueOf(element);
     }
 
 
-    protected void setValue(DSElement element) {
-        this.value = put("Value", element).setReadOnly(true).setHidden(true);
-        if (getParent() != null) {
-            getParent().childChanged(getInfo());
-        }
+    public void updateValue(DSIValue value) {
+        put(valueInfo, value);
     }
 
     public void onSet(DSIValue value) {
-        setValue(value.toElement());
+        updateValue(value);
     }
 
     @Override

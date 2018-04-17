@@ -31,6 +31,7 @@ import org.iot.dsa.node.action.ActionInvocation;
 import org.iot.dsa.node.action.ActionResult;
 import org.iot.dsa.node.action.ActionSpec;
 import org.iot.dsa.node.action.ActionSpec.ResultType;
+import org.iot.dsa.node.event.DSValueTopic;
 import org.iot.dsa.node.action.ActionValues;
 import org.iot.dsa.node.action.DSAction;
 import com.google.gson.JsonSyntaxException;
@@ -536,7 +537,7 @@ public class LocalDeviceNode extends RemovableNode {
 
     public void incomingMessage(DSMap message) {
         c2dList.add(message);
-        childChanged(c2d);
+        fire(VALUE_TOPIC, DSValueTopic.Event.CHILD_CHANGED, c2d);
     }
 
     private class DirectMethodCallback implements DeviceMethodCallback {

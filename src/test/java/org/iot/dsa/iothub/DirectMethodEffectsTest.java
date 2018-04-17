@@ -1,20 +1,18 @@
 package org.iot.dsa.iothub;
 
-import static org.mockito.Matchers.argThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.eq;
+import org.iot.dsa.dslink.DSIRequester;
 import org.iot.dsa.dslink.DSRequestException;
-import org.iot.dsa.dslink.requester.OutboundInvokeRequest;
-import org.iot.dsa.dslink.requester.OutboundRequest;
 import org.iot.dsa.node.DSInfo;
 import org.iot.dsa.node.DSMap;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
-import org.mockito.ArgumentMatcher;
-import com.acuity.iot.dsa.dslink.DSRequesterSession;
 import com.microsoft.azure.sdk.iot.device.IotHubClientProtocol;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
@@ -43,8 +41,8 @@ public class DirectMethodEffectsTest {
         RemoteDeviceNode sendDev = new RemoteDeviceNode(sendHub, deviceId);
         DSInfo actionInfo = mock(DSInfo.class);
         when(actionInfo.getAction()).thenReturn(null);
-        DSMap parameters = new DSMap().put("Method_Name", method).put("Response_Timeout", 30)
-                .put("Connect_Timeout", 5).put("Payload", payload.toString());
+        DSMap parameters = new DSMap().put("Method Name", method).put("Response Timeout", 30)
+                .put("Connect Timeout", 5).put("Payload", payload.toString());
         sendDev.invokeDirectMethod(actionInfo, parameters);
 
         verify(methodNode).recordInvoke(payload);
@@ -67,31 +65,32 @@ public class DirectMethodEffectsTest {
         DirectMethodNode methodNode = new DirectMethodNode(method, path);
 
         when(recvDev.getDirectMethod(method)).thenReturn(methodNode);
-        DSRequesterSession session = mock(DSRequesterSession.class);
-        RootNode m = new RootNode();
-        m.onConnected(session);
+        DSIRequester requester = mock(DSIRequester.class);
+        MainNode.setRequester(requester);
 
 
         RemoteDeviceNode sendDev = new RemoteDeviceNode(sendHub, deviceId);
         DSInfo actionInfo = mock(DSInfo.class);
         when(actionInfo.getAction()).thenReturn(null);
-        DSMap parameters = new DSMap().put("Method_Name", method).put("Response_Timeout", 30)
-                .put("Connect_Timeout", 5).put("Payload", payload.toString());
+        DSMap parameters = new DSMap().put("Method Name", method).put("Response Timeout", 30)
+                .put("Connect Timeout", 5).put("Payload", payload.toString());
         try {
             sendDev.invokeDirectMethod(actionInfo, parameters);
         } catch (DSRequestException e) {
         }
 
-        class IsMatchingRequest extends ArgumentMatcher<OutboundRequest> {
-            public boolean matches(Object o) {
-                if (o instanceof OutboundInvokeRequest) {
-                    OutboundInvokeRequest req = (OutboundInvokeRequest) o;
-                    return req.getPath().equals(path) && req.getParameters().equals(payload);
-                }
-                return false;
-            }
-        }
+//        class IsMatchingPath extends ArgumentMatcher<String> {
+//            public boolean matches(Object o) {
+//                return o.equals(path);
+//            }
+//        }
+//        
+//        class IsMatchingParams extends ArgumentMatcher<DSMap> {
+//            public boolean matches(Object o) {
+//                    return o.equals(payload);
+//            }
+//        }
 
-        verify(session).sendRequest(argThat(new IsMatchingRequest()));
+        verify(requester).invoke(eq(path), eq(payload), any());
     }
 }

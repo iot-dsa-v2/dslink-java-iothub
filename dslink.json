@@ -1,14 +1,15 @@
 {
   "name": "dslink-java-v2-iothub",
-  "version": "1.0.0.0",
+  "dsa-version": "1.0",
+  "version": "1.0.2.0",
   "description": "Azure IoT Hub DSLink",
   "main": "bin/dslink-java-v2-iothub",
   "configs": {
-    "rootType": {
+    "mainType": {
       "desc1": "*************** THIS IS REQUIRED AND MUST BE CHANGED ***************",
       "desc2": "Fully qualified class name of the root node of the link.",
       "type": "string",
-      "value": "org.iot.dsa.iothub.RootNode"
+      "value": "org.iot.dsa.iothub.MainNode"
     },
     "broker": {
       "desc1": "*************** OPTIONAL CONFIGS IN ALPHABETICAL ORDER ***************",
@@ -24,7 +25,7 @@
     "isRequester": {
       "desc": "Whether or not the link is a requester.",
       "type": "boolean",
-      "value": false
+      "value": true
     },
     "isResponder": {
       "desc": "Whether or not the link is a responder.",

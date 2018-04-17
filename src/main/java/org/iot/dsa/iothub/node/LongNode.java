@@ -1,5 +1,6 @@
 package org.iot.dsa.iothub.node;
 
+import org.iot.dsa.node.DSIValue;
 import org.iot.dsa.node.DSLong;
 
 /**
@@ -9,17 +10,18 @@ import org.iot.dsa.node.DSLong;
  */
 public class LongNode extends NumberNode {
 
-    public LongNode() {
-        setValue(DSLong.NULL);
-    }
-
-    public void setValue(DSLong value) {
-        super.setValue(value);
+    public void updateValue(DSLong value) {
+        super.updateValue(value);
     }
 
     @Override
     public Object getObject() {
         return toElement().toLong();
+    }
+
+    @Override
+    protected DSIValue getNullValue() {
+        return DSLong.NULL;
     }
 
 }

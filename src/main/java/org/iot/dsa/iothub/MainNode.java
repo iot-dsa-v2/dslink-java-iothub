@@ -1,8 +1,9 @@
 package org.iot.dsa.iothub;
 
-import org.iot.dsa.dslink.DSRequester;
-import org.iot.dsa.dslink.DSRequesterInterface;
-import org.iot.dsa.dslink.DSRootNode;
+import org.iot.dsa.dslink.DSIRequester;
+import org.iot.dsa.dslink.DSLinkConnection;
+import org.iot.dsa.dslink.DSLinkConnection.Listener;
+import org.iot.dsa.dslink.DSMainNode;
 import org.iot.dsa.node.DSInfo;
 import org.iot.dsa.node.DSMap;
 import org.iot.dsa.node.DSValueType;
@@ -15,9 +16,9 @@ import org.iot.dsa.node.action.DSAction;
  *
  * @author Daniel Shapiro
  */
-public class RootNode extends DSRootNode implements DSRequester {
-
-    private static DSRequesterInterface session;
+public class MainNode extends DSMainNode {
+    
+    private static DSIRequester requester;
 
     private void handleAddIotHub(DSMap parameters) {
         String name = parameters.getString("Name");
@@ -33,7 +34,7 @@ public class RootNode extends DSRootNode implements DSRequester {
         DSAction act = new DSAction() {
             @Override
             public ActionResult invoke(DSInfo info, ActionInvocation invocation) {
-                ((RootNode) info.getParent()).handleAddIotHub(invocation.getParameters());
+                ((MainNode) info.getParent()).handleAddIotHub(invocation.getParameters());
                 return null;
             }
         };
@@ -41,17 +42,26 @@ public class RootNode extends DSRootNode implements DSRequester {
         act.addParameter("Connection String", DSValueType.STRING, null);
         declareDefault("Add IoT Hub", act);
     }
+    
+    @Override
+    protected void onStarted() {
+        getLink().getConnection().addListener(new Listener() {
+            @Override
+            public void onConnect(DSLinkConnection connection) {
+                MainNode.setRequester(getLink().getConnection().getRequester());
+            }
 
-    public static DSRequesterInterface getRequesterSession() {
-        return session;
+            @Override
+            public void onDisconnect(DSLinkConnection connection) {
+            }
+        });
     }
 
-    @Override
-    public void onConnected(DSRequesterInterface session) {
-        RootNode.session = session;
+    public static DSIRequester getRequester() {
+        return requester;
     }
 
-    @Override
-    public void onDisconnected(DSRequesterInterface session) {}
-
+    public static void setRequester(DSIRequester requester) {
+        MainNode.requester = requester;
+    }
 }
