@@ -1,5 +1,22 @@
 package org.iot.dsa.iothub;
 
+import com.google.gson.JsonSyntaxException;
+import com.microsoft.azure.sdk.iot.device.DeviceClient;
+import com.microsoft.azure.sdk.iot.device.DeviceTwin.Device;
+import com.microsoft.azure.sdk.iot.device.DeviceTwin.DeviceMethodCallback;
+import com.microsoft.azure.sdk.iot.device.DeviceTwin.DeviceMethodData;
+import com.microsoft.azure.sdk.iot.device.DeviceTwin.Property;
+import com.microsoft.azure.sdk.iot.device.IotHubClientProtocol;
+import com.microsoft.azure.sdk.iot.device.IotHubEventCallback;
+import com.microsoft.azure.sdk.iot.device.IotHubMessageResult;
+import com.microsoft.azure.sdk.iot.device.IotHubStatusCode;
+import com.microsoft.azure.sdk.iot.device.Message;
+import com.microsoft.azure.sdk.iot.device.MessageCallback;
+import com.microsoft.azure.sdk.iot.device.MessageProperty;
+import com.microsoft.azure.sdk.iot.device.MessageType;
+import com.microsoft.azure.sdk.iot.service.DeviceStatus;
+import com.microsoft.azure.sdk.iot.service.RegistryManager;
+import com.microsoft.azure.sdk.iot.service.exceptions.IotHubException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -31,26 +48,10 @@ import org.iot.dsa.node.action.ActionInvocation;
 import org.iot.dsa.node.action.ActionResult;
 import org.iot.dsa.node.action.ActionSpec;
 import org.iot.dsa.node.action.ActionSpec.ResultType;
-import org.iot.dsa.node.event.DSValueTopic;
 import org.iot.dsa.node.action.ActionValues;
+import org.iot.dsa.node.action.DSAbstractAction;
 import org.iot.dsa.node.action.DSAction;
-import com.google.gson.JsonSyntaxException;
-import com.microsoft.azure.sdk.iot.device.DeviceClient;
-import com.microsoft.azure.sdk.iot.device.IotHubClientProtocol;
-import com.microsoft.azure.sdk.iot.device.IotHubEventCallback;
-import com.microsoft.azure.sdk.iot.device.IotHubMessageResult;
-import com.microsoft.azure.sdk.iot.device.IotHubStatusCode;
-import com.microsoft.azure.sdk.iot.device.Message;
-import com.microsoft.azure.sdk.iot.device.MessageCallback;
-import com.microsoft.azure.sdk.iot.device.MessageProperty;
-import com.microsoft.azure.sdk.iot.device.MessageType;
-import com.microsoft.azure.sdk.iot.device.DeviceTwin.Device;
-import com.microsoft.azure.sdk.iot.device.DeviceTwin.DeviceMethodCallback;
-import com.microsoft.azure.sdk.iot.device.DeviceTwin.DeviceMethodData;
-import com.microsoft.azure.sdk.iot.device.DeviceTwin.Property;
-import com.microsoft.azure.sdk.iot.service.DeviceStatus;
-import com.microsoft.azure.sdk.iot.service.RegistryManager;
-import com.microsoft.azure.sdk.iot.service.exceptions.IotHubException;
+import org.iot.dsa.node.event.DSValueTopic;
 
 /**
  * An instance of this node represents a specific local device registered in an Azure IoT Hub.
@@ -397,7 +398,7 @@ public class LocalDeviceNode extends RemovableNode {
         if (client == null) {
             throw new DSRequestException("Client not initialized");
         }
-        final DSAction action = actionInfo.getAction();
+        final DSAbstractAction action = actionInfo.getAction();
         String msgStr = parameters.getString("Message");
         Message msg = new Message(msgStr);
         DSMap properties = parameters.getMap("Properties");
@@ -445,7 +446,7 @@ public class LocalDeviceNode extends RemovableNode {
             warn("Device Client not initialized");
             throw new DSRequestException("Client not initialized");
         }
-        final DSAction action = actionInfo.getAction();
+        final DSAbstractAction action = actionInfo.getAction();
         String name = parameters.getString("Name");
         String path = parameters.getString("Filepath");
         File file = new File(path);

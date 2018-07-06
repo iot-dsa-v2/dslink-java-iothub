@@ -1,5 +1,16 @@
 package org.iot.dsa.iothub;
 
+import com.microsoft.azure.eventhubs.EventData;
+import com.microsoft.azure.eventhubs.EventHubClient;
+import com.microsoft.azure.eventhubs.PartitionReceiver;
+import com.microsoft.azure.sdk.iot.device.IotHubClientProtocol;
+import com.microsoft.azure.sdk.iot.service.FileUploadNotification;
+import com.microsoft.azure.sdk.iot.service.FileUploadNotificationReceiver;
+import com.microsoft.azure.sdk.iot.service.IotHubServiceClientProtocol;
+import com.microsoft.azure.sdk.iot.service.ServiceClient;
+import com.microsoft.azure.sdk.iot.service.devicetwin.DeviceMethod;
+import com.microsoft.azure.sdk.iot.service.devicetwin.DeviceTwin;
+import com.microsoft.azure.servicebus.ServiceBusException;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.time.Instant;
@@ -25,18 +36,8 @@ import org.iot.dsa.node.action.ActionResult;
 import org.iot.dsa.node.action.ActionSpec;
 import org.iot.dsa.node.action.ActionSpec.ResultType;
 import org.iot.dsa.node.action.ActionTable;
+import org.iot.dsa.node.action.DSAbstractAction;
 import org.iot.dsa.node.action.DSAction;
-import com.microsoft.azure.eventhubs.EventData;
-import com.microsoft.azure.eventhubs.EventHubClient;
-import com.microsoft.azure.eventhubs.PartitionReceiver;
-import com.microsoft.azure.sdk.iot.device.IotHubClientProtocol;
-import com.microsoft.azure.sdk.iot.service.FileUploadNotification;
-import com.microsoft.azure.sdk.iot.service.FileUploadNotificationReceiver;
-import com.microsoft.azure.sdk.iot.service.IotHubServiceClientProtocol;
-import com.microsoft.azure.sdk.iot.service.ServiceClient;
-import com.microsoft.azure.sdk.iot.service.devicetwin.DeviceMethod;
-import com.microsoft.azure.sdk.iot.service.devicetwin.DeviceTwin;
-import com.microsoft.azure.servicebus.ServiceBusException;
 
 /**
  * An instance of this node represents a specific Azure IoT Hub.
@@ -234,7 +235,7 @@ public class IotHubNode extends RemovableNode {
     }
 
     public ActionResult readMessages(DSInfo actionInfo, ActionInvocation invocation) {
-        final DSAction action = actionInfo.getAction();
+        final DSAbstractAction action = actionInfo.getAction();
         DSMap parameters = invocation.getParameters();
         String name = parameters.getString("EventHub Compatible Name");
         String endpt = parameters.getString("EventHub Compatible Endpoint");
@@ -353,7 +354,7 @@ public class IotHubNode extends RemovableNode {
 
     private ActionResult readFileNotifications(DSInfo actionInfo,
             final ActionInvocation invocation) {
-        final DSAction action = actionInfo.getAction();
+        final DSAbstractAction action = actionInfo.getAction();
         DSMap parameters = invocation.getParameters();
         String protocolStr = parameters.getString("Protocol");
         IotHubServiceClientProtocol protocol = protocolStr.endsWith("WS")

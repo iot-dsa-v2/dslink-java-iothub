@@ -1,81 +1,18 @@
 {
   "name": "dslink-java-v2-iothub",
   "dsa-version": "1.0",
-  "version": "1.0.2.0",
+  "version": "1.0.2",
   "description": "Azure IoT Hub DSLink",
   "main": "bin/dslink-java-v2-iothub",
   "configs": {
-    "mainType": {
-      "desc1": "*************** THIS IS REQUIRED AND MUST BE CHANGED ***************",
-      "desc2": "Fully qualified class name of the root node of the link.",
+    "handler_class": {
       "type": "string",
       "value": "org.iot.dsa.iothub.MainNode"
     },
-    "broker": {
-      "desc1": "*************** OPTIONAL CONFIGS IN ALPHABETICAL ORDER ***************",
-      "desc2": "URL to broker.",
-      "type": "url",
-      "value": null
-    },
-    "connectionType": {
-      "desc": "Can be specified to override the default connection type.",
-      "type": "string",
-      "value": null
-    },
-    "isRequester": {
-      "desc": "Whether or not the link is a requester.",
-      "type": "boolean",
-      "value": true
-    },
-    "isResponder": {
-      "desc": "Whether or not the link is a responder.",
-      "type": "boolean",
-      "value": true
-    },
-    "key": {
-      "desc": "Path to public/private key pair.",
-      "type": "path",
-      "value": ".key"
-    },
     "log": {
-      "desc": "debug, info, warn, error, none",
+      "desc": "all, trace, debug, fine, warn, info, error, admin, fatal, none",
       "type": "enum",
       "value": "info"
-    },
-    "logFile": {
-      "desc": "Path to the log file.",
-      "type": "path",
-      "value": null
-    },
-    "nodes": {
-      "desc": "Path to configuration database.",
-      "type": "path",
-      "value": null
-    },
-    "readTimeout": {
-      "desc": "Millis timeout for reading from the connection.",
-      "type": "number",
-      "value": 60000
-    },
-    "saveInterval": {
-      "desc": "How often to backup the node database in minutes.",
-      "type": "number",
-      "value": 60
-    },
-    "stableDelay": {
-      "desc": "Millis after the node tree is started before calling stable.",
-      "type": "number",
-      "value": 5000
-    },
-    "token": {
-      "desc": "Authentication token for the broker.",
-      "type": "string",
-      "value": null
-    },
-    "transportFactory": {
-      "desc": "Can be specified to override the default standalone transport.",
-      "type": "string",
-      "value": null
     }
   }
 }

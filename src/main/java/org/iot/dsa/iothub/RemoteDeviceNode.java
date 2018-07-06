@@ -1,5 +1,16 @@
 package org.iot.dsa.iothub;
 
+import com.microsoft.azure.sdk.iot.service.DeliveryAcknowledgement;
+import com.microsoft.azure.sdk.iot.service.FeedbackBatch;
+import com.microsoft.azure.sdk.iot.service.FeedbackReceiver;
+import com.microsoft.azure.sdk.iot.service.IotHubServiceClientProtocol;
+import com.microsoft.azure.sdk.iot.service.Message;
+import com.microsoft.azure.sdk.iot.service.ServiceClient;
+import com.microsoft.azure.sdk.iot.service.devicetwin.DeviceMethod;
+import com.microsoft.azure.sdk.iot.service.devicetwin.DeviceTwinDevice;
+import com.microsoft.azure.sdk.iot.service.devicetwin.MethodResult;
+import com.microsoft.azure.sdk.iot.service.devicetwin.Pair;
+import com.microsoft.azure.sdk.iot.service.exceptions.IotHubException;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -26,20 +37,10 @@ import org.iot.dsa.node.DSValueType;
 import org.iot.dsa.node.action.ActionInvocation;
 import org.iot.dsa.node.action.ActionResult;
 import org.iot.dsa.node.action.ActionSpec;
-import org.iot.dsa.node.action.ActionValues;
-import org.iot.dsa.node.action.DSAction;
 import org.iot.dsa.node.action.ActionSpec.ResultType;
-import com.microsoft.azure.sdk.iot.service.DeliveryAcknowledgement;
-import com.microsoft.azure.sdk.iot.service.FeedbackBatch;
-import com.microsoft.azure.sdk.iot.service.FeedbackReceiver;
-import com.microsoft.azure.sdk.iot.service.IotHubServiceClientProtocol;
-import com.microsoft.azure.sdk.iot.service.Message;
-import com.microsoft.azure.sdk.iot.service.ServiceClient;
-import com.microsoft.azure.sdk.iot.service.devicetwin.DeviceMethod;
-import com.microsoft.azure.sdk.iot.service.devicetwin.DeviceTwinDevice;
-import com.microsoft.azure.sdk.iot.service.devicetwin.MethodResult;
-import com.microsoft.azure.sdk.iot.service.devicetwin.Pair;
-import com.microsoft.azure.sdk.iot.service.exceptions.IotHubException;
+import org.iot.dsa.node.action.ActionValues;
+import org.iot.dsa.node.action.DSAbstractAction;
+import org.iot.dsa.node.action.DSAction;
 
 /**
  * An instance of this node represents a specific IoT Hub Device.
@@ -375,7 +376,7 @@ public class RemoteDeviceNode extends RemovableNode {
 
 
     public ActionResult invokeDirectMethod(DSInfo actionInfo, DSMap parameters) {
-        final DSAction action = actionInfo.getAction();
+        final DSAbstractAction action = actionInfo.getAction();
         String methodName = parameters.getString("Method Name");
         long responseTimeout = TimeUnit.SECONDS.toSeconds(parameters.getLong("Response Timeout"));
         long connectTimeout = TimeUnit.SECONDS.toSeconds(parameters.getLong("Connect Timeout"));

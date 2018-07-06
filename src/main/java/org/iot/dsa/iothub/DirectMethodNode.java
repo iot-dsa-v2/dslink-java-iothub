@@ -1,11 +1,13 @@
 package org.iot.dsa.iothub;
 
+import com.microsoft.azure.sdk.iot.device.DeviceTwin.DeviceMethodData;
 import java.text.DateFormat;
 import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import org.iot.dsa.dslink.DSIRequester;
 import org.iot.dsa.dslink.requester.AbstractInvokeHandler;
+import org.iot.dsa.dslink.requester.ErrorType;
 import org.iot.dsa.io.json.JsonReader;
 import org.iot.dsa.iothub.node.RemovableNode;
 import org.iot.dsa.node.DSIObject;
@@ -14,7 +16,6 @@ import org.iot.dsa.node.DSList;
 import org.iot.dsa.node.DSMap;
 import org.iot.dsa.node.DSString;
 import org.iot.dsa.node.event.DSValueTopic;
-import com.microsoft.azure.sdk.iot.device.DeviceTwin.DeviceMethodData;
 
 /**
  * An instance of this node This node represents a direct method of a local device. The IoT Hub that
@@ -169,8 +170,9 @@ public class DirectMethodNode extends RemovableNode {
         }
 
         @Override
-        public void onError(String type, String msg, String detail) {
+        public void onError(ErrorType type, String msg) {
         }
+
     }
 
 }

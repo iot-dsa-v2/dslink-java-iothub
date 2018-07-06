@@ -1,5 +1,11 @@
 package org.iot.dsa.iothub;
 
+import static org.mockito.Mockito.argThat;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
+
+import com.microsoft.azure.sdk.iot.device.IotHubClientProtocol;
+import com.microsoft.azure.sdk.iot.service.IotHubServiceClientProtocol;
 import org.iot.dsa.node.DSMap;
 import org.iot.dsa.node.DSMap.Entry;
 import org.iot.dsa.node.DSString;
@@ -7,9 +13,6 @@ import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
 import org.mockito.ArgumentMatcher;
-import static org.mockito.Mockito.*;
-import com.microsoft.azure.sdk.iot.device.IotHubClientProtocol;
-import com.microsoft.azure.sdk.iot.service.IotHubServiceClientProtocol;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class C2DTest {

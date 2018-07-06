@@ -1,16 +1,20 @@
 package org.iot.dsa.iothub;
 
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
+
+import com.microsoft.azure.sdk.iot.device.IotHubClientProtocol;
 import java.util.Iterator;
-import org.junit.FixMethodOrder;
-import org.junit.Test;
-import org.junit.runners.MethodSorters;
 import org.iot.dsa.node.DSIValue;
 import org.iot.dsa.node.DSInfo;
 import org.iot.dsa.node.DSMap;
 import org.iot.dsa.node.action.ActionResult;
 import org.iot.dsa.node.action.ActionValues;
-import com.microsoft.azure.sdk.iot.device.IotHubClientProtocol;
+import org.junit.FixMethodOrder;
+import org.junit.Test;
+import org.junit.runners.MethodSorters;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class DirectMethodReturnTest {

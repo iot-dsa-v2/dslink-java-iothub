@@ -1,11 +1,13 @@
 package org.iot.dsa.iothub;
 
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
+
+import com.microsoft.azure.sdk.iot.device.IotHubClientProtocol;
 import org.iot.dsa.dslink.DSIRequester;
 import org.iot.dsa.dslink.DSRequestException;
 import org.iot.dsa.node.DSInfo;
@@ -13,7 +15,6 @@ import org.iot.dsa.node.DSMap;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
-import com.microsoft.azure.sdk.iot.device.IotHubClientProtocol;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class DirectMethodEffectsTest {

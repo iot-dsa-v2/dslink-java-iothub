@@ -1,5 +1,11 @@
 package org.iot.dsa.iothub;
 
+import static org.mockito.Mockito.argThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import com.microsoft.azure.sdk.iot.device.IotHubClientProtocol;
 import org.iot.dsa.node.DSInfo;
 import org.iot.dsa.node.DSList;
 import org.iot.dsa.node.DSMap;
@@ -9,8 +15,6 @@ import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
 import org.mockito.ArgumentMatcher;
-import static org.mockito.Mockito.*;
-import com.microsoft.azure.sdk.iot.device.IotHubClientProtocol;
 
 @FixMethodOrder(MethodSorters.DEFAULT)
 public class D2CTest {

@@ -17,22 +17,19 @@ build {
 repositories {
     mavenCentral()
     maven {
-        url 'https://oss.sonatype.org/content/repositories/snapshots/'
+        url 'https://jitpack.io'
     }
-    flatDir { dirs 'dsa' }
 }
 
 dependencies {
-    compile 'org.iot.dsa:dslink-core:+'
-    compile 'org.iot.dsa:dslink-websocket-standalone:+'
-    compile 'org.glassfish.tyrus.bundles:tyrus-standalone-client:1.13'
-    compile 'org.apache.commons:commons-lang3:3.6'
-    compile 'com.microsoft.azure:azure-eventhubs:0.13.0'
-	compile 'com.microsoft.azure.sdk.iot:iot-service-client:1.5.22'
-	compile 'com.microsoft.azure.sdk.iot:iot-device-client:1.3.30'
+    implementation 'com.github.iot-dsa-v2:sdk-dslink-java-v2:+'
+    implementation 'org.apache.commons:commons-lang3:3.6'
+    implementation 'com.microsoft.azure:azure-eventhubs:0.13.0'
+	implementation 'com.microsoft.azure.sdk.iot:iot-service-client:1.5.22'
+	implementation 'com.microsoft.azure.sdk.iot:iot-device-client:1.3.30'
 	
-    testCompile 'junit:junit:+'
-    testCompile 'org.mockito:mockito-all:+'
+    testImplementation 'junit:junit:+'
+    testImplementation 'org.mockito:mockito-all:+'
 }
 
 test.onlyIf { false }
@@ -45,5 +42,5 @@ run {
 }
 
 task wrapper(type: Wrapper) {
-    gradleVersion = '4.2'
+    gradleVersion = '4.8.1'
 }

@@ -20,7 +20,7 @@ This link was built using the DSLink Java SDK which can be found
 
 This section outlines the hierarchy of nodes defined by this link.
 
-- _RootNode_ - The root node of the link, has an action to add an IoT Hub to the view.
+- _MainNode_ - The root node of the link, has an action to add an IoT Hub to the view.
   - _IotHubNode_ - A node representing a specific IoT Hub.
     - _Local_ - Serves as the container for Local Device nodes.
       - _LocalDeviceNode_ - Represents a local device.
@@ -41,7 +41,7 @@ The following section provides detailed descriptions of each node in the link as
 descriptions of actions, values and child nodes.
 
 
-### RootNode
+### MainNode
 
 This is the root node of the link.
 
