@@ -104,7 +104,7 @@ Holds _DirectMethodNodes_ associated with its parent _LocalDeviceNode_.
 - Add Direct Method - Create a _DirectMethodNode_, optionally providing a DSA path that it should forward invocations to.
 
 **Child Nodes**
- - any _DirecMethodNodes_ that have been added.
+ - any _DirectMethodNodes_ that have been added.
 
 ### DirectMethodNode
 
