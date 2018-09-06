@@ -45,7 +45,7 @@ descriptions of actions, values and child nodes.
 This is the root node of the link.
 
 **Actions**
-- Add IoT Hub - Connect to an IoT Hub and add a child _IoHubNode_ to represent it. 
+- Add IoT Hub - Connect to an IoT Hub and add a child _IotHubNode_ to represent it. 
 
 **Child Nodes**
  - any _IotHubNodes_ that have been added.
