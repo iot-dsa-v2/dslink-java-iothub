@@ -46,6 +46,7 @@ This is the root node of the link.
 
 **Actions**
 - Add IoT Hub - Connect to an IoT Hub and add a child _IotHubNode_ to represent it. 
+  - `Connection String` - The connection string of the IoT Hub, [found under _Shared Access Policies_ in the Azure Portal.]( https://raw.githubusercontent.com/iot-dsa-v2/dslink-java-v2-iothub/develop/docs/connstring1.png)  
 
 **Child Nodes**
  - any _IotHubNodes_ that have been added.
@@ -58,6 +59,10 @@ This node represents a specific Azure IoT Hub.
 - Remove - Remove this node.
 - Edit - Edit the connection string and try to connect again.
 - Read Messages - Read device-to-cloud messages from this IoT Hub's EventHub-compatible endpoint.
+  - EventHub Compatible Name - [Found under _Endpoints_ in the Azure Portal.] (https://raw.githubusercontent.com/iot-dsa-v2/dslink-java-v2-iothub/develop/docs/eventhubname.png)
+  - EventHub Compatible Endpoint - [Found under _Endpoints_ in the Azure Portal.] (https://raw.githubusercontent.com/iot-dsa-v2/dslink-java-v2-iothub/develop/docs/eventhubendpt.png)
+  - Partition ID - The partition of the endpoint to read from.
+  - Start Time - The time from which to start reading messages, defaults to the time of invocation.
 - Get File Upload Notifications - Read any file upload notifications that this IoT Hub receives. These get sent to the IoT Hub whenever one of its devices uploads a file to Azure blob storage.
 
 **Child Nodes**
