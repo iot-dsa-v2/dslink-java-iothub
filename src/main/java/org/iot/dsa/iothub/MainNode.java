@@ -6,6 +6,7 @@ import org.iot.dsa.dslink.DSLinkConnection.Listener;
 import org.iot.dsa.dslink.DSMainNode;
 import org.iot.dsa.node.DSInfo;
 import org.iot.dsa.node.DSMap;
+import org.iot.dsa.node.DSString;
 import org.iot.dsa.node.DSValueType;
 import org.iot.dsa.node.action.ActionInvocation;
 import org.iot.dsa.node.action.ActionResult;
@@ -41,6 +42,7 @@ public class MainNode extends DSMainNode {
         act.addParameter("Name", DSValueType.STRING, null);
         act.addParameter("Connection String", DSValueType.STRING, null);
         declareDefault("Add IoT Hub", act);
+        declareDefault("Docs", DSString.valueOf("https://github.com/iot-dsa-v2/dslink-java-v2-iothub/blob/develop/README.md")).setTransient(true).setReadOnly(true);
     }
     
     @Override
