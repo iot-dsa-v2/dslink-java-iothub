@@ -27,8 +27,7 @@ public class Util {
 
     public static Map<String, String> dsMapToMap(DSMap dsMap) {
         Map<String, String> map = new HashMap<String, String>();
-        for (int i = 0; i < dsMap.size(); i++) {
-            Entry en = dsMap.getEntry(i);
+        for (Entry en : dsMap) {
             map.put(en.getKey(), en.getValue().toString());
         }
         return map;

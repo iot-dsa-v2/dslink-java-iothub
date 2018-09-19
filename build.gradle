@@ -1,6 +1,6 @@
 import groovy.json.JsonSlurper
 
-apply plugin: 'java'
+apply plugin: 'java-library'
 apply plugin: 'application'
 
 group 'org.iot.dsa'
@@ -41,6 +41,6 @@ run {
     workingDir project.buildDir
 }
 
-task wrapper(type: Wrapper) {
-    gradleVersion = '4.9'
+wrapper {
+    gradleVersion = '4.10'
 }

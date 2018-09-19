@@ -7,7 +7,6 @@ import org.iot.dsa.node.DSIValue;
 import org.iot.dsa.node.DSInfo;
 import org.iot.dsa.node.DSNode;
 import org.iot.dsa.node.DSValueType;
-import org.iot.dsa.node.event.DSValueTopic.Event;
 
 /**
  * The base class for a node that is also a value, used to represent Device Twin Properties and
@@ -18,13 +17,13 @@ import org.iot.dsa.node.event.DSValueTopic.Event;
 public abstract class ValueNode extends RemovableNode implements DSIValue, TwinProperty {
 
     private DSInfo valueInfo = getInfo("Value");
-    
+
     @Override
     protected void declareDefaults() {
         super.declareDefaults();
         declareDefault("Value", getNullValue()).setReadOnly(true).setHidden(true);
     }
-    
+
     protected abstract DSIValue getNullValue();
 
     /**
@@ -34,10 +33,10 @@ public abstract class ValueNode extends RemovableNode implements DSIValue, TwinP
     @Override
     public void onChildChanged(DSInfo child) {
         if (child == valueInfo) {
-            fire(VALUE_TOPIC, Event.NODE_CHANGED, null);
+            fire(VALUE_TOPIC, null);
         }
     }
-    
+
     @Override
     public DSValueType getValueType() {
         return valueInfo.getValue().getValueType();
