@@ -113,7 +113,7 @@ public class DirectMethodNode extends RemovableNode {
         try {
             invokeList.add(new DSMap().put("Timestamp", dateFormat.format(new Date()))
                     .put("Parameters", parameters));
-            fire(VALUE_TOPIC, DSValueTopic.Event.CHILD_CHANGED, invokes);
+            fire(VALUE_TOPIC, invokes);
         } catch (Exception e) {
             warn(e);
         }

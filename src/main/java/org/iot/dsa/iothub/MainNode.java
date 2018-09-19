@@ -1,16 +1,20 @@
 package org.iot.dsa.iothub;
 
+import org.iot.dsa.conn.DSConnection.DSConnectionEvent;
 import org.iot.dsa.dslink.DSIRequester;
 import org.iot.dsa.dslink.DSLinkConnection;
-import org.iot.dsa.dslink.DSLinkConnection.Listener;
 import org.iot.dsa.dslink.DSMainNode;
 import org.iot.dsa.node.DSInfo;
 import org.iot.dsa.node.DSMap;
+import org.iot.dsa.node.DSNode;
 import org.iot.dsa.node.DSString;
 import org.iot.dsa.node.DSValueType;
 import org.iot.dsa.node.action.ActionInvocation;
 import org.iot.dsa.node.action.ActionResult;
 import org.iot.dsa.node.action.DSAction;
+import org.iot.dsa.node.event.DSIEvent;
+import org.iot.dsa.node.event.DSISubscriber;
+import org.iot.dsa.node.event.DSTopic;
 
 /**
  * This is the root node of the link.
@@ -18,7 +22,7 @@ import org.iot.dsa.node.action.DSAction;
  * @author Daniel Shapiro
  */
 public class MainNode extends DSMainNode {
-    
+
     private static DSIRequester requester;
 
     private void handleAddIotHub(DSMap parameters) {
@@ -42,19 +46,23 @@ public class MainNode extends DSMainNode {
         act.addParameter("Name", DSValueType.STRING, null);
         act.addParameter("Connection String", DSValueType.STRING, null);
         declareDefault("Add IoT Hub", act);
-        declareDefault("Docs", DSString.valueOf("https://github.com/iot-dsa-v2/dslink-java-v2-iothub/blob/develop/README.md")).setTransient(true).setReadOnly(true);
+        declareDefault("Docs", DSString.valueOf(
+                "https://github.com/iot-dsa-v2/dslink-java-v2-iothub/blob/develop/README.md"))
+                .setTransient(true).setReadOnly(true);
     }
-    
+
     @Override
     protected void onStarted() {
-        getLink().getConnection().addListener(new Listener() {
+        getLink().getConnection().subscribe(DSLinkConnection.CONN_TOPIC, null, new DSISubscriber() {
             @Override
-            public void onConnect(DSLinkConnection connection) {
-                MainNode.setRequester(getLink().getConnection().getRequester());
+            public void onEvent(DSNode node, DSInfo child, DSIEvent event) {
+                if (event == DSConnectionEvent.CONNECTED) {
+                    MainNode.setRequester(getLink().getConnection().getRequester());
+                }
             }
 
             @Override
-            public void onDisconnect(DSLinkConnection connection) {
+            public void onUnsubscribed(DSTopic topic, DSNode node, DSInfo child) {
             }
         });
     }

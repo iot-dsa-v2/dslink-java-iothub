@@ -402,8 +402,7 @@ public class LocalDeviceNode extends RemovableNode {
         String msgStr = parameters.getString("Message");
         Message msg = new Message(msgStr);
         DSMap properties = parameters.getMap("Properties");
-        for (int i = 0; i < properties.size(); i++) {
-            Entry entry = properties.getEntry(i);
+        for (Entry entry : properties) {
             msg.setProperty(entry.getKey(), entry.getValue().toString());
         }
         msg.setMessageId(java.util.UUID.randomUUID().toString());
@@ -538,7 +537,7 @@ public class LocalDeviceNode extends RemovableNode {
 
     public void incomingMessage(DSMap message) {
         c2dList.add(message);
-        fire(VALUE_TOPIC, DSValueTopic.Event.CHILD_CHANGED, c2d);
+        fire(VALUE_TOPIC, c2d);
     }
 
     private class DirectMethodCallback implements DeviceMethodCallback {

@@ -96,8 +96,7 @@ public class C2DTest {
                 boolean isMatch = map.size() >= 4 + props.size()
                         && map.get("Body").equals(DSString.valueOf(message));
                 if (isMatch) {
-                    for (int i = 0; i < props.size(); i++) {
-                        Entry entry = props.getEntry(i);
+                    for (Entry entry : props) {
                         if (!entry.getValue().equals(map.get(entry.getKey()))) {
                             return false;
                         }
