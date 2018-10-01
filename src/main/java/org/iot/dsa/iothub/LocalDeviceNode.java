@@ -418,14 +418,25 @@ public class LocalDeviceNode extends RemovableNode {
                 lockobj.add(DSString.NULL);
             }
             return new ActionValues() {
-                @Override
-                public Iterator<DSIValue> getValues() {
-                    return lockobj.iterator();
-                }
 
                 @Override
                 public ActionSpec getAction() {
                     return action;
+                }
+
+                @Override
+                public int getColumnCount() {
+                    return lockobj.size();
+                }
+
+                @Override
+                public void getMetadata(int col, DSMap bucket) {
+                    bucket.putAll(action.getValueResult(col));
+                }
+
+                @Override
+                public DSIValue getValue(int col) {
+                    return lockobj.get(col);
                 }
 
                 @Override
@@ -469,14 +480,25 @@ public class LocalDeviceNode extends RemovableNode {
                 lockobj.add(DSString.NULL);
             }
             return new ActionValues() {
-                @Override
-                public Iterator<DSIValue> getValues() {
-                    return lockobj.iterator();
-                }
 
                 @Override
                 public ActionSpec getAction() {
                     return action;
+                }
+
+                @Override
+                public int getColumnCount() {
+                    return lockobj.size();
+                }
+
+                @Override
+                public void getMetadata(int col, DSMap bucket) {
+                    bucket.putAll(action.getValueResult(col));
+                }
+
+                @Override
+                public DSIValue getValue(int col) {
+                    return lockobj.get(col);
                 }
 
                 @Override

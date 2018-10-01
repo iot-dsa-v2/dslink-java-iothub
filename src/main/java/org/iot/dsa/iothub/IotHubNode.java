@@ -24,6 +24,7 @@ import org.iot.dsa.DSRuntime;
 import org.iot.dsa.dslink.DSRequestException;
 import org.iot.dsa.iothub.node.RemovableNode;
 import org.iot.dsa.node.DSIObject;
+import org.iot.dsa.node.DSIValue;
 import org.iot.dsa.node.DSInfo;
 import org.iot.dsa.node.DSJavaEnum;
 import org.iot.dsa.node.DSList;
@@ -45,6 +46,7 @@ import org.iot.dsa.node.action.DSAction;
  * @author Daniel Shapiro
  */
 public class IotHubNode extends RemovableNode {
+
     private String connectionString;
 
     private DSNode localNode;
@@ -89,6 +91,7 @@ public class IotHubNode extends RemovableNode {
     }
 
     public static class LocalNode extends DSNode {
+
         public LocalNode() {
             super();
         }
@@ -101,6 +104,7 @@ public class IotHubNode extends RemovableNode {
     }
 
     public static class RemoteNode extends DSNode {
+
         public RemoteNode() {
             super();
         }
@@ -187,7 +191,7 @@ public class IotHubNode extends RemovableNode {
         act.addParameter("EventHub Compatible Endpoint", DSValueType.STRING, null);
         act.addParameter("Partition ID", DSValueType.STRING, null).setPlaceHolder("0");
         act.addParameter("Start Time", DSValueType.STRING, "Optional - defaults to 'now'")
-                .setPlaceHolder("Optional");
+           .setPlaceHolder("Optional");
         act.setResultType(ResultType.STREAM_TABLE);
         return act;
     }
@@ -260,7 +264,6 @@ public class IotHubNode extends RemovableNode {
             }
         }
 
-
         EventHubClient client = null;
         try {
             client = EventHubClient.createFromConnectionStringSync(connStr);
@@ -271,27 +274,6 @@ public class IotHubNode extends RemovableNode {
         }
 
         return new ActionTable() {
-            private List<DSMap> cols;
-
-
-            @Override
-            public Iterator<DSList> getRows() {
-                return new ArrayList<DSList>().iterator();
-            }
-
-            @Override
-            public Iterator<DSMap> getColumns() {
-                if (cols == null) {
-                    cols = new ArrayList<DSMap>();
-                    cols.add(Util.makeColumn("Offset", DSValueType.STRING));
-                    cols.add(Util.makeColumn("Sequence Number", DSValueType.NUMBER));
-                    cols.add(Util.makeColumn("Enqueued Time", DSValueType.STRING));
-                    cols.add(Util.makeColumn("Device ID", DSValueType.STRING));
-                    cols.add(Util.makeColumn("Message Payload", DSValueType.STRING));
-                    cols.add(Util.makeColumn("Properties", DSValueType.MAP));
-                }
-                return cols.iterator();
-            }
 
             @Override
             public ActionSpec getAction() {
@@ -299,61 +281,103 @@ public class IotHubNode extends RemovableNode {
             }
 
             @Override
-            public void onClose() {}
+            public int getColumnCount() {
+                return 6;
+            }
+
+            @Override
+            public void getMetadata(int col, DSMap bucket) {
+                switch (col) {
+                    case 0:
+                        bucket.putAll(Util.makeColumn("Offset", DSValueType.STRING));
+                        break;
+                    case 1:
+                        bucket.putAll(Util.makeColumn("Sequence Number", DSValueType.NUMBER));
+                        break;
+                    case 2:
+                        bucket.putAll(Util.makeColumn("Enqueued Time", DSValueType.STRING));
+                        break;
+                    case 3:
+                        bucket.putAll(Util.makeColumn("Device ID", DSValueType.STRING));
+                        break;
+                    case 4:
+                        bucket.putAll(Util.makeColumn("Message Payload", DSValueType.STRING));
+                        break;
+                    case 5:
+                        bucket.putAll(Util.makeColumn("Properties", DSValueType.MAP));
+                        break;
+                }
+            }
+
+            @Override
+            public DSIValue getValue(int col) {
+                return null;
+            }
+
+            @Override
+            public boolean next() {
+                return false;
+            }
+
+            @Override
+            public void onClose() {
+            }
+
         };
     }
 
     private void receiveMessages(final EventHubClient client, final String partitionId,
-            final Instant start, final ActionInvocation invocation) throws ServiceBusException {
+                                 final Instant start, final ActionInvocation invocation)
+            throws ServiceBusException {
         client.createReceiver(EventHubClient.DEFAULT_CONSUMER_GROUP_NAME, partitionId,
-                start != null ? start : Instant.now())
-                .thenAccept(new Consumer<PartitionReceiver>() {
-                    public void accept(PartitionReceiver receiver) {
-                        try {
-                            while (invocation.isOpen()) {
-                                Iterable<EventData> receivedEvents = receiver.receive(100).get();
-                                if (receivedEvents != null) {
-                                    for (EventData receivedEvent : receivedEvents) {
-                                        String offset =
-                                                receivedEvent.getSystemProperties().getOffset();
-                                        long seqNo = receivedEvent.getSystemProperties()
-                                                .getSequenceNumber();
-                                        Instant enqTime = receivedEvent.getSystemProperties()
-                                                .getEnqueuedTime();
-                                        Object deviceId = receivedEvent.getSystemProperties()
-                                                .get("iothub-connection-device-id");
-                                        String payload = new String(receivedEvent.getBytes(),
-                                                Charset.defaultCharset());
-                                        DSList row = new DSList().add(offset).add(seqNo)
-                                                .add(enqTime.toString());
-                                        row.add(deviceId != null ? deviceId.toString() : null);
-                                        row.add(payload);
-                                        DSMap properties = row.addMap();
-                                        for (Entry<String, Object> entry : receivedEvent
-                                                .getProperties().entrySet()) {
-                                            Util.putInMap(properties, entry.getKey(),
-                                                    entry.getValue());
-                                        }
-                                        invocation.send(row);
-                                    }
-                                }
-                            }
-                        } catch (Exception e) {
-                            warn("Failed to receive messages: " + e.getMessage());
-                            invocation.close(new DSRequestException(e.getMessage()));
-                        } finally {
-                            try {
-                                client.closeSync();
-                            } catch (ServiceBusException e) {
-                                warn("Failed to close Client: " + e.getMessage());
-                            }
-                        }
-                    }
-                });
+                              start != null ? start : Instant.now())
+              .thenAccept(new Consumer<PartitionReceiver>() {
+                  public void accept(PartitionReceiver receiver) {
+                      try {
+                          while (invocation.isOpen()) {
+                              Iterable<EventData> receivedEvents = receiver.receive(100).get();
+                              if (receivedEvents != null) {
+                                  for (EventData receivedEvent : receivedEvents) {
+                                      String offset =
+                                              receivedEvent.getSystemProperties().getOffset();
+                                      long seqNo = receivedEvent.getSystemProperties()
+                                                                .getSequenceNumber();
+                                      Instant enqTime = receivedEvent.getSystemProperties()
+                                                                     .getEnqueuedTime();
+                                      Object deviceId = receivedEvent.getSystemProperties()
+                                                                     .get("iothub-connection-device-id");
+                                      String payload = new String(receivedEvent.getBytes(),
+                                                                  Charset.defaultCharset());
+                                      DSList row = new DSList().add(offset).add(seqNo)
+                                                               .add(enqTime.toString());
+                                      row.add(deviceId != null ? deviceId.toString() : null);
+                                      row.add(payload);
+                                      DSMap properties = row.addMap();
+                                      for (Entry<String, Object> entry : receivedEvent
+                                              .getProperties().entrySet()) {
+                                          Util.putInMap(properties, entry.getKey(),
+                                                        entry.getValue());
+                                      }
+                                      invocation.send(row);
+                                  }
+                              }
+                          }
+                      } catch (Exception e) {
+                          warn("Failed to receive messages: " + e.getMessage());
+                          invocation.close(new DSRequestException(e.getMessage()));
+                      } finally {
+                          try {
+                              client.closeSync();
+                          } catch (ServiceBusException e) {
+                              warn("Failed to close Client: " + e.getMessage());
+                          }
+                      }
+                  }
+              });
     }
 
     private ActionResult readFileNotifications(DSInfo actionInfo,
-            final ActionInvocation invocation) {
+                                               final ActionInvocation invocation) {
         final DSAbstractAction action = actionInfo.getAction();
         DSMap parameters = invocation.getParameters();
         String protocolStr = parameters.getString("Protocol");
@@ -404,12 +428,12 @@ public class IotHubNode extends RemovableNode {
             }
 
             @Override
-            public Iterator<DSList> getRows() {
-                return new ArrayList<DSList>().iterator();
+            public int getColumnCount() {
+                return cols.size();
             }
 
             @Override
-            public Iterator<DSMap> getColumns() {
+            public void getMetadata(int col, DSMap bucket) {
                 if (cols == null) {
                     cols = new ArrayList<DSMap>();
                     cols.add(Util.makeColumn("Enqueued Time", DSValueType.STRING));
@@ -419,13 +443,24 @@ public class IotHubNode extends RemovableNode {
                     cols.add(Util.makeColumn("Last Updated", DSValueType.STRING));
                     cols.add(Util.makeColumn("Blob Size(Bytes)", DSValueType.NUMBER));
                 }
-                return cols.iterator();
+                bucket.putAll(cols.get(col));
             }
+
+            @Override
+            public DSIValue getValue(int col) {
+                return null;
+            }
+
+            @Override
+            public boolean next() {
+                return false;
+            }
+
         };
     }
 
     private void receiveFileNotifications(FileUploadNotificationReceiver receiver,
-            ActionInvocation invocation) {
+                                          ActionInvocation invocation) {
         try {
             while (invocation.isOpen()) {
                 System.out.println("Recieve file upload notifications...");
@@ -439,7 +474,7 @@ public class IotHubNode extends RemovableNode {
                             notification.getLastUpdatedTimeDate().toInstant().toString();
                     Long blobBytes = notification.getBlobSizeInBytes();
                     DSList row = new DSList().add(enqTime).add(devId).add(blobUri).add(blobName)
-                            .add(lastUpdate).add(blobBytes);
+                                             .add(lastUpdate).add(blobBytes);
                     invocation.send(row);
                 }
             }

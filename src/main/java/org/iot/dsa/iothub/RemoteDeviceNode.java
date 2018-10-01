@@ -14,7 +14,6 @@ import com.microsoft.azure.sdk.iot.service.exceptions.IotHubException;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -48,6 +47,7 @@ import org.iot.dsa.node.action.DSAction;
  * @author Daniel Shapiro
  */
 public class RemoteDeviceNode extends RemovableNode {
+
     private String deviceId;
     private IotHubNode hubNode;
     private DSInfo status;
@@ -57,7 +57,8 @@ public class RemoteDeviceNode extends RemovableNode {
 
     private DeviceTwinDevice twin;
 
-    public RemoteDeviceNode() {}
+    public RemoteDeviceNode() {
+    }
 
     public RemoteDeviceNode(IotHubNode hubNode, String deviceId) {
         this.deviceId = deviceId;
@@ -77,6 +78,7 @@ public class RemoteDeviceNode extends RemovableNode {
     }
 
     public static class TagsNode extends DSNode implements TwinPropertyContainer {
+
         @Override
         protected void declareDefaults() {
             declareDefault("Add Tag", makeAddTagAction());
@@ -111,6 +113,7 @@ public class RemoteDeviceNode extends RemovableNode {
     }
 
     public static class DesiredPropsNode extends DSNode implements TwinPropertyContainer {
+
         @Override
         protected void declareDefaults() {
             declareDefault("Add Desired Property", makeAddDesiredPropAction());
@@ -244,12 +247,13 @@ public class RemoteDeviceNode extends RemovableNode {
             @Override
             public ActionResult invoke(DSInfo info, ActionInvocation invocation) {
                 return ((RemoteDeviceNode) info.getParent()).invokeDirectMethod(info,
-                        invocation.getParameters());
+                                                                                invocation
+                                                                                        .getParameters());
             }
         };
         act.addParameter("Method Name", DSValueType.STRING, null);
         act.addDefaultParameter("Response Timeout", DSInt.valueOf(30),
-                "Response Timeout in Seconds");
+                                "Response Timeout in Seconds");
         act.addDefaultParameter("Connect Timeout", DSInt.valueOf(5), "Connect Timeout in Seconds");
         act.addParameter("Payload", DSValueType.STRING, "Payload of direct method invocation");
         act.setResultType(ResultType.VALUES);
@@ -269,7 +273,7 @@ public class RemoteDeviceNode extends RemovableNode {
         };
         act.addParameter("Name", DSValueType.STRING, null);
         act.addParameter("Value Type", DSFlexEnum.valueOf("String", Util.getSimpleValueTypes()),
-                null);
+                         null);
         return act;
     }
 
@@ -284,7 +288,7 @@ public class RemoteDeviceNode extends RemovableNode {
         };
         act.addParameter("Name", DSValueType.STRING, null);
         act.addParameter("Value Type", DSFlexEnum.valueOf("String", Util.getSimpleValueTypes()),
-                null);
+                         null);
         return act;
     }
 
@@ -389,7 +393,7 @@ public class RemoteDeviceNode extends RemovableNode {
 
         try {
             MethodResult result = methodClient.invoke(deviceId, methodName, responseTimeout,
-                    connectTimeout, invPayload);
+                                                      connectTimeout, invPayload);
 
             if (result == null) {
                 throw new IOException("Invoke direct method returned null");
@@ -401,17 +405,28 @@ public class RemoteDeviceNode extends RemovableNode {
             final List<DSIValue> vals = Arrays.asList(v1, v2);
             return new ActionValues() {
                 @Override
-                public Iterator<DSIValue> getValues() {
-                    return vals.iterator();
-                }
-
-                @Override
                 public ActionSpec getAction() {
                     return action;
                 }
 
                 @Override
-                public void onClose() {}
+                public int getColumnCount() {
+                    return vals.size();
+                }
+
+                @Override
+                public void getMetadata(int col, DSMap bucket) {
+                    bucket.putAll(action.getValueResult(col));
+                }
+
+                @Override
+                public DSIValue getValue(int col) {
+                    return vals.get(col);
+                }
+
+                @Override
+                public void onClose() {
+                }
             };
         } catch (IotHubException | IOException e) {
             warn("Error invoking direct method: " + e);
@@ -445,7 +460,7 @@ public class RemoteDeviceNode extends RemovableNode {
                 FeedbackBatch feedbackBatch = feedbackReceiver.receive(10000);
                 if (feedbackBatch != null) {
                     info("Message feedback received, feedback time: "
-                            + feedbackBatch.getEnqueuedTimeUtc().toString());
+                                 + feedbackBatch.getEnqueuedTimeUtc().toString());
                 }
 
                 if (feedbackReceiver != null) {
