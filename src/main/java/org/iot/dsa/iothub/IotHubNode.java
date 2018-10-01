@@ -16,7 +16,6 @@ import java.nio.charset.Charset;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.function.Consumer;
@@ -429,11 +428,6 @@ public class IotHubNode extends RemovableNode {
 
             @Override
             public int getColumnCount() {
-                return cols.size();
-            }
-
-            @Override
-            public void getMetadata(int col, DSMap bucket) {
                 if (cols == null) {
                     cols = new ArrayList<DSMap>();
                     cols.add(Util.makeColumn("Enqueued Time", DSValueType.STRING));
@@ -443,6 +437,11 @@ public class IotHubNode extends RemovableNode {
                     cols.add(Util.makeColumn("Last Updated", DSValueType.STRING));
                     cols.add(Util.makeColumn("Blob Size(Bytes)", DSValueType.NUMBER));
                 }
+                return cols.size();
+            }
+
+            @Override
+            public void getMetadata(int col, DSMap bucket) {
                 bucket.putAll(cols.get(col));
             }
 
