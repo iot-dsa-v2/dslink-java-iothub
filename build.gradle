@@ -22,7 +22,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.github.iot-dsa-v2:sdk-dslink-java-v2:+'
+    implementation 'com.github.iot-dsa-v2:sdk-dslink-java-v2:v0.43.0'
     implementation 'org.apache.commons:commons-lang3:3.6'
     implementation 'com.microsoft.azure:azure-eventhubs:0.13.0'
 	implementation 'com.microsoft.azure.sdk.iot:iot-service-client:1.5.22'
