@@ -1,6 +1,5 @@
 package org.iot.dsa.iothub;
 
-import org.iot.dsa.conn.DSConnection.DSConnectionEvent;
 import org.iot.dsa.dslink.DSIRequester;
 import org.iot.dsa.dslink.DSLinkConnection;
 import org.iot.dsa.dslink.DSMainNode;
@@ -53,12 +52,10 @@ public class MainNode extends DSMainNode {
 
     @Override
     protected void onStarted() {
-        getLink().getConnection().subscribe(DSLinkConnection.CONN_TOPIC, null, new DSISubscriber() {
+        getLink().getConnection().subscribe(DSLinkConnection.CONNECTED, null, new DSISubscriber() {
             @Override
             public void onEvent(DSNode node, DSInfo child, DSIEvent event) {
-                if (event == DSConnectionEvent.CONNECTED) {
-                    MainNode.setRequester(getLink().getConnection().getRequester());
-                }
+                MainNode.setRequester(getLink().getConnection().getRequester());
             }
 
             @Override
