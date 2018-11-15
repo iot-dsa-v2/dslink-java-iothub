@@ -44,7 +44,7 @@ public class DirectMethodEffectsTest {
         when(actionInfo.getAction()).thenReturn(null);
         DSMap parameters = new DSMap().put("Method Name", method).put("Response Timeout", 30)
                 .put("Connect Timeout", 5).put("Payload", payload.toString());
-        sendDev.invokeDirectMethod(actionInfo, parameters);
+        sendDev.invokeDirectMethod(actionInfo.getAction(), parameters);
 
         verify(methodNode).recordInvoke(payload);
     }
@@ -76,7 +76,7 @@ public class DirectMethodEffectsTest {
         DSMap parameters = new DSMap().put("Method Name", method).put("Response Timeout", 30)
                 .put("Connect Timeout", 5).put("Payload", payload.toString());
         try {
-            sendDev.invokeDirectMethod(actionInfo, parameters);
+            sendDev.invokeDirectMethod(actionInfo.getAction(), parameters);
         } catch (DSRequestException e) {
         }
 
