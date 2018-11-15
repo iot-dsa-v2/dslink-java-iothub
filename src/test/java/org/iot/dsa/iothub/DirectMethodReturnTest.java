@@ -58,7 +58,7 @@ public class DirectMethodReturnTest {
         when(actionInfo.getAction()).thenReturn(null);
         DSMap parameters = new DSMap().put("Method Name", method).put("Response Timeout", 30)
                                       .put("Connect Timeout", 5).put("Payload", payload);
-        ActionResult result = sendDev.invokeDirectMethod(actionInfo, parameters);
+        ActionResult result = sendDev.invokeDirectMethod(actionInfo.getAction(), parameters);
         DSIValue code = ((ActionValues) result).getValue(0);
         assert (code.toElement().toInt() == 404);
 
@@ -105,7 +105,7 @@ public class DirectMethodReturnTest {
         when(actionInfo.getAction()).thenReturn(null);
         DSMap parameters = new DSMap().put("Method Name", method).put("Response Timeout", 30)
                                       .put("Connect Timeout", 10).put("Payload", payload);
-        ActionResult result = sendDev.invokeDirectMethod(actionInfo, parameters);
+        ActionResult result = sendDev.invokeDirectMethod(actionInfo.getAction(), parameters);
         DSIValue code = ((ActionValues) result).getValue(0);
         assert (code.toElement().toInt() == 200);
     }

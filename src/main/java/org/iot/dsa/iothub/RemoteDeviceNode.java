@@ -38,7 +38,6 @@ import org.iot.dsa.node.action.ActionResult;
 import org.iot.dsa.node.action.ActionSpec;
 import org.iot.dsa.node.action.ActionSpec.ResultType;
 import org.iot.dsa.node.action.ActionValues;
-import org.iot.dsa.node.action.DSAbstractAction;
 import org.iot.dsa.node.action.DSAction;
 
 /**
@@ -48,13 +47,12 @@ import org.iot.dsa.node.action.DSAction;
  */
 public class RemoteDeviceNode extends RemovableNode {
 
+    private DesiredPropsNode desiredNode;
     private String deviceId;
     private IotHubNode hubNode;
+    private DSNode reportedNode;
     private DSInfo status;
     private TagsNode tagsNode;
-    private DesiredPropsNode desiredNode;
-    private DSNode reportedNode;
-
     private DeviceTwinDevice twin;
 
     public RemoteDeviceNode() {
@@ -65,322 +63,7 @@ public class RemoteDeviceNode extends RemovableNode {
         this.hubNode = hubNode;
     }
 
-    @Override
-    protected void declareDefaults() {
-        super.declareDefaults();
-        declareDefault("Tags", new TagsNode());
-        declareDefault("Desired Properties", new DesiredPropsNode());
-        declareDefault("Reported Properties", new DSNode());
-
-        declareDefault("Invoke Direct Method", makeInvokeDirectMethodAction());
-        declareDefault("Send C2D Message", makeSendMessageAction());
-        declareDefault("Refresh", makeRefreshAction());
-    }
-
-    public static class TagsNode extends DSNode implements TwinPropertyContainer {
-
-        @Override
-        protected void declareDefaults() {
-            declareDefault("Add Tag", makeAddTagAction());
-        }
-
-        @Override
-        protected void onChildChanged(DSInfo info) {
-            onChange(info);
-        }
-
-        @Override
-        public void onChange(DSInfo info) {
-            if (info.isAction()) {
-                return;
-            }
-            String name = info.getName();
-            DSIObject value = info.getObject();
-            if (value instanceof TwinProperty) {
-                Object object = ((TwinProperty) value).getObject();
-                ((RemoteDeviceNode) info.getParent().getParent()).setTag(name, object);
-            }
-        }
-
-        @Override
-        public void onDelete(DSInfo info) {
-            if (info.isAction()) {
-                return;
-            }
-            String name = info.getName();
-            ((RemoteDeviceNode) info.getParent().getParent()).setTag(name, null);
-        }
-    }
-
-    public static class DesiredPropsNode extends DSNode implements TwinPropertyContainer {
-
-        @Override
-        protected void declareDefaults() {
-            declareDefault("Add Desired Property", makeAddDesiredPropAction());
-        }
-
-        @Override
-        protected void onChildChanged(DSInfo info) {
-            onChange(info);
-        }
-
-        @Override
-        public void onChange(DSInfo info) {
-            if (info.isAction()) {
-                return;
-            }
-            String name = info.getName();
-            DSIObject value = info.getObject();
-            if (value instanceof TwinProperty) {
-                Object object = ((TwinProperty) value).getObject();
-                ((RemoteDeviceNode) info.getParent().getParent()).setDesiredProperty(name, object);
-            }
-        }
-
-        @Override
-        public void onDelete(DSInfo info) {
-            // if (info.isAction()) {
-            // return;
-            // }
-            // String name = info.getName();
-            // ((RemoteDeviceNode) info.getParent().getParent()).setDesiredProperty(name, null);
-        }
-
-    }
-
-    @Override
-    protected void onStable() {
-        status = add("STATUS", DSString.valueOf("Connecting"));
-        status.setTransient(true);
-        status.setReadOnly(true);
-
-        if (hubNode == null) {
-            DSNode n = getParent().getParent();
-            if (n instanceof IotHubNode) {
-                hubNode = (IotHubNode) n;
-            }
-        }
-        if (deviceId == null) {
-            deviceId = getName();
-        }
-
-        tagsNode = (TagsNode) getNode("Tags");
-        desiredNode = (DesiredPropsNode) getNode("Desired Properties");
-        reportedNode = getNode("Reported Properties");
-
-        twin = new DeviceTwinDevice(deviceId);
-
-        init();
-    }
-
-    private void init() {
-        try {
-            hubNode.getTwinClient().getTwin(twin);
-
-            updateTags();
-            updateDesired();
-            updateReported();
-
-            put(status, DSString.valueOf("Ready"));
-        } catch (IOException | IotHubException e) {
-            warn(e);
-            put(status, DSString.valueOf("Error retrieving device twin: " + e.getMessage()));
-        }
-    }
-
-    private void updateTags() {
-        tagsNode.clear();
-        for (Pair p : twin.getTags()) {
-            String name = p.getKey();
-            Object object = p.getValue();
-            tagsNode.put(name, Util.objectToValueNode(object)).setTransient(true);
-        }
-    }
-
-    private void updateDesired() {
-        desiredNode.clear();
-        for (Pair p : twin.getDesiredProperties()) {
-            String name = p.getKey();
-            Object object = p.getValue();
-            desiredNode.put(name, Util.objectToValueNode(object)).setTransient(true);
-        }
-    }
-
-    private void updateReported() {
-        reportedNode.clear();
-        for (Pair p : twin.getReportedProperties()) {
-            String name = p.getKey();
-            Object object = p.getValue();
-            reportedNode.put(name, DSString.valueOf(object)).setTransient(true).setReadOnly(true);
-        }
-    }
-
-    private DSAction makeRefreshAction() {
-        DSAction act = new DSAction() {
-            @Override
-            public ActionResult invoke(DSInfo info, ActionInvocation invocation) {
-                ((RemoteDeviceNode) info.getParent()).init();
-                return null;
-            }
-        };
-        return act;
-    }
-
-    private DSAction makeSendMessageAction() {
-        DSAction act = new DSAction() {
-            @Override
-            public ActionResult invoke(DSInfo info, ActionInvocation invocation) {
-                ((RemoteDeviceNode) info.getParent()).sendC2DMessage(invocation.getParameters());
-                return null;
-            }
-        };
-        act.addParameter("Protocol", DSJavaEnum.valueOf(IotHubServiceClientProtocol.AMQPS), null);
-        act.addParameter("Message", DSValueType.STRING, null);
-        act.addDefaultParameter("Properties", new DSMap(), null);
-        // act.setResultType(ResultType.VALUES);
-        // act.addColumn("Feedback", DSValueType.STRING);
-        return act;
-    }
-
-    private DSAction makeInvokeDirectMethodAction() {
-        DSAction act = new DSAction() {
-            @Override
-            public ActionResult invoke(DSInfo info, ActionInvocation invocation) {
-                return ((RemoteDeviceNode) info.getParent()).invokeDirectMethod(info,
-                                                                                invocation
-                                                                                        .getParameters());
-            }
-        };
-        act.addParameter("Method Name", DSValueType.STRING, null);
-        act.addDefaultParameter("Response Timeout", DSInt.valueOf(30),
-                                "Response Timeout in Seconds");
-        act.addDefaultParameter("Connect Timeout", DSInt.valueOf(5), "Connect Timeout in Seconds");
-        act.addParameter("Payload", DSValueType.STRING, "Payload of direct method invocation");
-        act.setResultType(ResultType.VALUES);
-        act.addValueResult("Result Status", DSValueType.NUMBER);
-        act.addValueResult("Result Payload", DSValueType.STRING);
-        return act;
-    }
-
-    private static DSAction makeAddDesiredPropAction() {
-        DSAction act = new DSAction() {
-            @Override
-            public ActionResult invoke(DSInfo info, ActionInvocation invocation) {
-                ((RemoteDeviceNode) info.getParent().getParent())
-                        .addDesiredProp(invocation.getParameters());
-                return null;
-            }
-        };
-        act.addParameter("Name", DSValueType.STRING, null);
-        act.addParameter("Value Type", DSFlexEnum.valueOf("String", Util.getSimpleValueTypes()),
-                         null);
-        return act;
-    }
-
-    private static DSAction makeAddTagAction() {
-        DSAction act = new DSAction() {
-            @Override
-            public ActionResult invoke(DSInfo info, ActionInvocation invocation) {
-                ((RemoteDeviceNode) info.getParent().getParent())
-                        .addTag(invocation.getParameters());
-                return null;
-            }
-        };
-        act.addParameter("Name", DSValueType.STRING, null);
-        act.addParameter("Value Type", DSFlexEnum.valueOf("String", Util.getSimpleValueTypes()),
-                         null);
-        return act;
-    }
-
-    private void addTag(DSMap parameters) {
-        String name = parameters.getString("Name");
-        String vt = parameters.getString("Value Type");
-        TwinProperty vn;
-        switch (vt.charAt(0)) {
-            case 'S':
-                vn = new StringNode();
-                break;
-            case 'N':
-                vn = new DoubleNode();
-                break;
-            case 'B':
-                vn = new BoolNode();
-                break;
-            case 'L':
-                vn = new ListNode();
-                break;
-            case 'M':
-                vn = new TwinPropertyNode();
-                break;
-            default:
-                vn = null;
-                break;
-        }
-        if (vn != null) {
-            tagsNode.add(name, vn).setTransient(true);
-            if (vn instanceof DSNode) {
-                tagsNode.onChange(((DSNode) vn).getInfo());
-            }
-        }
-    }
-
-    private void setTag(String name, Object value) {
-        Set<Pair> tags = new HashSet<Pair>();
-        tags.add(new Pair(name, value));
-        twin.setTags(tags);
-        try {
-            hubNode.getTwinClient().updateTwin(twin);
-        } catch (IotHubException | IOException e) {
-            warn(e);
-        }
-    }
-
-    private void addDesiredProp(DSMap parameters) {
-        String name = parameters.getString("Name");
-        String vt = parameters.getString("Value Type");
-        TwinProperty vn;
-        switch (vt.charAt(0)) {
-            case 'S':
-                vn = new StringNode();
-                break;
-            case 'N':
-                vn = new DoubleNode();
-                break;
-            case 'B':
-                vn = new BoolNode();
-                break;
-            case 'L':
-                vn = new ListNode();
-                break;
-            case 'M':
-                vn = new TwinPropertyNode();
-                break;
-            default:
-                vn = null;
-                break;
-        }
-        if (vn != null) {
-            desiredNode.add(name, vn).setTransient(true);
-            if (vn instanceof DSNode) {
-                desiredNode.onChange(((DSNode) vn).getInfo());
-            }
-        }
-    }
-
-    private void setDesiredProperty(String name, Object value) {
-        Set<Pair> props = new HashSet<Pair>();
-        props.add(new Pair(name, value));
-        twin.setDesiredProperties(props);
-        try {
-            hubNode.getTwinClient().updateTwin(twin);
-        } catch (IotHubException | IOException e) {
-            warn(e);
-        }
-    }
-
-
-    public ActionResult invokeDirectMethod(DSInfo actionInfo, DSMap parameters) {
-        final DSAbstractAction action = actionInfo.getAction();
+    public ActionResult invokeDirectMethod(final DSAction action, DSMap parameters) {
         String methodName = parameters.getString("Method Name");
         long responseTimeout = TimeUnit.SECONDS.toSeconds(parameters.getLong("Response Timeout"));
         long connectTimeout = TimeUnit.SECONDS.toSeconds(parameters.getLong("Connect Timeout"));
@@ -416,7 +99,7 @@ public class RemoteDeviceNode extends RemovableNode {
 
                 @Override
                 public void getMetadata(int col, DSMap bucket) {
-                    bucket.putAll(action.getValueResult(col));
+                    action.getColumnMetadata(col, bucket);
                 }
 
                 @Override
@@ -471,6 +154,318 @@ public class RemoteDeviceNode extends RemovableNode {
         } catch (IOException | IotHubException | InterruptedException e) {
             warn("Error sending cloud-to-device message: " + e);
             throw new DSRequestException(e.getMessage());
+        }
+    }
+
+    @Override
+    protected void declareDefaults() {
+        super.declareDefaults();
+        declareDefault("Tags", new TagsNode());
+        declareDefault("Desired Properties", new DesiredPropsNode());
+        declareDefault("Reported Properties", new DSNode());
+
+        declareDefault("Invoke Direct Method", makeInvokeDirectMethodAction());
+        declareDefault("Send C2D Message", makeSendMessageAction());
+        declareDefault("Refresh", makeRefreshAction());
+    }
+
+    @Override
+    protected void onStable() {
+        status = add("STATUS", DSString.valueOf("Connecting"));
+        status.setTransient(true);
+        status.setReadOnly(true);
+
+        if (hubNode == null) {
+            DSNode n = getParent().getParent();
+            if (n instanceof IotHubNode) {
+                hubNode = (IotHubNode) n;
+            }
+        }
+        if (deviceId == null) {
+            deviceId = getName();
+        }
+
+        tagsNode = (TagsNode) getNode("Tags");
+        desiredNode = (DesiredPropsNode) getNode("Desired Properties");
+        reportedNode = getNode("Reported Properties");
+
+        twin = new DeviceTwinDevice(deviceId);
+
+        init();
+    }
+
+    private void addDesiredProp(DSMap parameters) {
+        String name = parameters.getString("Name");
+        String vt = parameters.getString("Value Type");
+        TwinProperty vn;
+        switch (vt.charAt(0)) {
+            case 'S':
+                vn = new StringNode();
+                break;
+            case 'N':
+                vn = new DoubleNode();
+                break;
+            case 'B':
+                vn = new BoolNode();
+                break;
+            case 'L':
+                vn = new ListNode();
+                break;
+            case 'M':
+                vn = new TwinPropertyNode();
+                break;
+            default:
+                vn = null;
+                break;
+        }
+        if (vn != null) {
+            desiredNode.add(name, vn).setTransient(true);
+            if (vn instanceof DSNode) {
+                desiredNode.onChange(((DSNode) vn).getInfo());
+            }
+        }
+    }
+
+    private void addTag(DSMap parameters) {
+        String name = parameters.getString("Name");
+        String vt = parameters.getString("Value Type");
+        TwinProperty vn;
+        switch (vt.charAt(0)) {
+            case 'S':
+                vn = new StringNode();
+                break;
+            case 'N':
+                vn = new DoubleNode();
+                break;
+            case 'B':
+                vn = new BoolNode();
+                break;
+            case 'L':
+                vn = new ListNode();
+                break;
+            case 'M':
+                vn = new TwinPropertyNode();
+                break;
+            default:
+                vn = null;
+                break;
+        }
+        if (vn != null) {
+            tagsNode.add(name, vn).setTransient(true);
+            if (vn instanceof DSNode) {
+                tagsNode.onChange(((DSNode) vn).getInfo());
+            }
+        }
+    }
+
+    private void init() {
+        try {
+            hubNode.getTwinClient().getTwin(twin);
+
+            updateTags();
+            updateDesired();
+            updateReported();
+
+            put(status, DSString.valueOf("Ready"));
+        } catch (IOException | IotHubException e) {
+            warn(e);
+            put(status, DSString.valueOf("Error retrieving device twin: " + e.getMessage()));
+        }
+    }
+
+    private static DSAction makeAddDesiredPropAction() {
+        DSAction act = new DSAction.Parameterless() {
+            @Override
+            public ActionResult invoke(DSInfo target, ActionInvocation invocation) {
+                ((RemoteDeviceNode) target.getNode().getParent())
+                        .addDesiredProp(invocation.getParameters());
+                return null;
+            }
+        };
+        act.addParameter("Name", DSValueType.STRING, null);
+        act.addParameter("Value Type", DSFlexEnum.valueOf("String", Util.getSimpleValueTypes()),
+                         null);
+        return act;
+    }
+
+    private static DSAction makeAddTagAction() {
+        DSAction act = new DSAction.Parameterless() {
+            @Override
+            public ActionResult invoke(DSInfo target, ActionInvocation invocation) {
+                ((RemoteDeviceNode) target.getNode().getParent())
+                        .addTag(invocation.getParameters());
+                return null;
+            }
+        };
+        act.addParameter("Name", DSValueType.STRING, null);
+        act.addParameter("Value Type", DSFlexEnum.valueOf("String", Util.getSimpleValueTypes()),
+                         null);
+        return act;
+    }
+
+    private DSAction makeInvokeDirectMethodAction() {
+        DSAction act = new DSAction.Parameterless() {
+            @Override
+            public ActionResult invoke(DSInfo target, ActionInvocation invocation) {
+                return ((RemoteDeviceNode) target.get()).invokeDirectMethod(
+                        this, invocation.getParameters());
+            }
+        };
+        act.addParameter("Method Name", DSValueType.STRING, null);
+        act.addDefaultParameter("Response Timeout", DSInt.valueOf(30),
+                                "Response Timeout in Seconds");
+        act.addDefaultParameter("Connect Timeout", DSInt.valueOf(5), "Connect Timeout in Seconds");
+        act.addParameter("Payload", DSValueType.STRING, "Payload of direct method invocation");
+        act.setResultType(ResultType.VALUES);
+        act.addColumnMetadata("Result Status", DSValueType.NUMBER);
+        act.addColumnMetadata("Result Payload", DSValueType.STRING);
+        return act;
+    }
+
+    private DSAction makeRefreshAction() {
+        DSAction act = new DSAction.Parameterless() {
+            @Override
+            public ActionResult invoke(DSInfo target, ActionInvocation invocation) {
+                ((RemoteDeviceNode) target.get()).init();
+                return null;
+            }
+        };
+        return act;
+    }
+
+    private DSAction makeSendMessageAction() {
+        DSAction act = new DSAction.Parameterless() {
+            @Override
+            public ActionResult invoke(DSInfo target, ActionInvocation invocation) {
+                ((RemoteDeviceNode) target.get()).sendC2DMessage(invocation.getParameters());
+                return null;
+            }
+        };
+        act.addParameter("Protocol", DSJavaEnum.valueOf(IotHubServiceClientProtocol.AMQPS), null);
+        act.addParameter("Message", DSValueType.STRING, null);
+        act.addDefaultParameter("Properties", new DSMap(), null);
+        // act.setResultType(ResultType.VALUES);
+        // act.addColumn("Feedback", DSValueType.STRING);
+        return act;
+    }
+
+    private void setDesiredProperty(String name, Object value) {
+        Set<Pair> props = new HashSet<Pair>();
+        props.add(new Pair(name, value));
+        twin.setDesiredProperties(props);
+        try {
+            hubNode.getTwinClient().updateTwin(twin);
+        } catch (IotHubException | IOException e) {
+            warn(e);
+        }
+    }
+
+    private void setTag(String name, Object value) {
+        Set<Pair> tags = new HashSet<Pair>();
+        tags.add(new Pair(name, value));
+        twin.setTags(tags);
+        try {
+            hubNode.getTwinClient().updateTwin(twin);
+        } catch (IotHubException | IOException e) {
+            warn(e);
+        }
+    }
+
+    private void updateDesired() {
+        desiredNode.clear();
+        for (Pair p : twin.getDesiredProperties()) {
+            String name = p.getKey();
+            Object object = p.getValue();
+            desiredNode.put(name, Util.objectToValueNode(object)).setTransient(true);
+        }
+    }
+
+    private void updateReported() {
+        reportedNode.clear();
+        for (Pair p : twin.getReportedProperties()) {
+            String name = p.getKey();
+            Object object = p.getValue();
+            reportedNode.put(name, DSString.valueOf(object)).setTransient(true).setReadOnly(true);
+        }
+    }
+
+    private void updateTags() {
+        tagsNode.clear();
+        for (Pair p : twin.getTags()) {
+            String name = p.getKey();
+            Object object = p.getValue();
+            tagsNode.put(name, Util.objectToValueNode(object)).setTransient(true);
+        }
+    }
+
+    public static class DesiredPropsNode extends DSNode implements TwinPropertyContainer {
+
+        @Override
+        public void onChange(DSInfo info) {
+            if (info.isAction()) {
+                return;
+            }
+            String name = info.getName();
+            DSIObject value = info.getObject();
+            if (value instanceof TwinProperty) {
+                Object object = ((TwinProperty) value).getObject();
+                ((RemoteDeviceNode) info.getParent().getParent()).setDesiredProperty(name, object);
+            }
+        }
+
+        @Override
+        public void onDelete(DSInfo info) {
+            // if (info.isAction()) {
+            // return;
+            // }
+            // String name = info.getName();
+            // ((RemoteDeviceNode) info.getParent().getParent()).setDesiredProperty(name, null);
+        }
+
+        @Override
+        protected void declareDefaults() {
+            declareDefault("Add Desired Property", makeAddDesiredPropAction());
+        }
+
+        @Override
+        protected void onChildChanged(DSInfo info) {
+            onChange(info);
+        }
+
+    }
+
+    public static class TagsNode extends DSNode implements TwinPropertyContainer {
+
+        @Override
+        public void onChange(DSInfo info) {
+            if (info.isAction()) {
+                return;
+            }
+            String name = info.getName();
+            DSIObject value = info.getObject();
+            if (value instanceof TwinProperty) {
+                Object object = ((TwinProperty) value).getObject();
+                ((RemoteDeviceNode) info.getParent().getParent()).setTag(name, object);
+            }
+        }
+
+        @Override
+        public void onDelete(DSInfo info) {
+            if (info.isAction()) {
+                return;
+            }
+            String name = info.getName();
+            ((RemoteDeviceNode) info.getParent().getParent()).setTag(name, null);
+        }
+
+        @Override
+        protected void declareDefaults() {
+            declareDefault("Add Tag", makeAddTagAction());
+        }
+
+        @Override
+        protected void onChildChanged(DSInfo info) {
+            onChange(info);
         }
     }
 

@@ -33,12 +33,6 @@ public class TwinPropertyNode extends RemovableNode implements TwinProperty, Twi
     }
 
     @Override
-    protected void declareDefaults() {
-        super.declareDefaults();
-        declareDefault("Add", makeAddAction());
-    }
-
-    @Override
     public void delete() {
         DSNode parent = getParent();
         if (parent instanceof TwinPropertyContainer) {
@@ -48,42 +42,21 @@ public class TwinPropertyNode extends RemovableNode implements TwinProperty, Twi
     }
 
     @Override
-    protected void onChildChanged(DSInfo info) {
-        onChange(info);
-    }
-
-    @Override
-    public void onDelete(DSInfo info) {
-        nulls.add(info.getName());
-        onChange(info);
-    }
-
-    @Override
-    public void onChange(DSInfo info) {
-        if (info.isAction()) {
-            return;
+    public Object getObject() {
+        Map<String, Object> map = new HashMap<String, Object>();
+        for (String name : nulls) {
+            map.put(name, null);
         }
-        ((TwinPropertyContainer) getParent()).onChange(getInfo());
-    }
-
-    private static DSAction makeAddAction() {
-        DSAction act = new DSAction() {
-            @Override
-            public ActionResult invoke(DSInfo info, ActionInvocation invocation) {
-                ((TwinPropertyNode) info.getParent()).invokeAdd(invocation.getParameters());
-                return null;
+        for (DSInfo info : this) {
+            if (!info.isAction()) {
+                String name = info.getName();
+                DSIObject value = info.getObject();
+                if (value instanceof TwinProperty) {
+                    map.put(name, ((TwinProperty) value).getObject());
+                }
             }
-        };
-        act.addParameter("Name", DSValueType.STRING, null);
-        act.addParameter("Value Type", DSFlexEnum.valueOf("String", Util.getSimpleValueTypes()),
-                null);
-        return act;
-    }
-
-    private void invokeAdd(DSMap parameters) {
-        String name = parameters.getString("Name");
-        String vt = parameters.getString("Value Type");
-        handleAdd(name, vt);
+        }
+        return map;
     }
 
     public void handleAdd(String name, String type) {
@@ -117,20 +90,47 @@ public class TwinPropertyNode extends RemovableNode implements TwinProperty, Twi
     }
 
     @Override
-    public Object getObject() {
-        Map<String, Object> map = new HashMap<String, Object>();
-        for (String name : nulls) {
-            map.put(name, null);
+    public void onChange(DSInfo info) {
+        if (info.isAction()) {
+            return;
         }
-        for (DSInfo info : this) {
-            if (!info.isAction()) {
-                String name = info.getName();
-                DSIObject value = info.getObject();
-                if (value instanceof TwinProperty) {
-                    map.put(name, ((TwinProperty) value).getObject());
-                }
+        ((TwinPropertyContainer) getParent()).onChange(getInfo());
+    }
+
+    @Override
+    public void onDelete(DSInfo info) {
+        nulls.add(info.getName());
+        onChange(info);
+    }
+
+    @Override
+    protected void declareDefaults() {
+        super.declareDefaults();
+        declareDefault("Add", makeAddAction());
+    }
+
+    @Override
+    protected void onChildChanged(DSInfo info) {
+        onChange(info);
+    }
+
+    private void invokeAdd(DSMap parameters) {
+        String name = parameters.getString("Name");
+        String vt = parameters.getString("Value Type");
+        handleAdd(name, vt);
+    }
+
+    private static DSAction makeAddAction() {
+        DSAction act = new DSAction.Parameterless() {
+            @Override
+            public ActionResult invoke(DSInfo target, ActionInvocation invocation) {
+                ((TwinPropertyNode) target.get()).invokeAdd(invocation.getParameters());
+                return null;
             }
-        }
-        return map;
+        };
+        act.addParameter("Name", DSValueType.STRING, null);
+        act.addParameter("Value Type", DSFlexEnum.valueOf("String", Util.getSimpleValueTypes()),
+                         null);
+        return act;
     }
 }

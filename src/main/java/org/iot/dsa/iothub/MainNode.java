@@ -13,7 +13,7 @@ import org.iot.dsa.node.action.ActionResult;
 import org.iot.dsa.node.action.DSAction;
 import org.iot.dsa.node.event.DSIEvent;
 import org.iot.dsa.node.event.DSISubscriber;
-import org.iot.dsa.node.event.DSTopic;
+import org.iot.dsa.node.event.DSITopic;
 
 /**
  * This is the root node of the link.
@@ -24,21 +24,21 @@ public class MainNode extends DSMainNode {
 
     private static DSIRequester requester;
 
-    private void handleAddIotHub(DSMap parameters) {
-        String name = parameters.getString("Name");
-        String connString = parameters.getString("Connection String");
+    public static DSIRequester getRequester() {
+        return requester;
+    }
 
-        IotHubNode hub = new IotHubNode(connString);
-        add(name, hub);
+    public static void setRequester(DSIRequester requester) {
+        MainNode.requester = requester;
     }
 
     @Override
     protected void declareDefaults() {
         super.declareDefaults();
-        DSAction act = new DSAction() {
+        DSAction act = new DSAction.Parameterless() {
             @Override
-            public ActionResult invoke(DSInfo info, ActionInvocation invocation) {
-                ((MainNode) info.getParent()).handleAddIotHub(invocation.getParameters());
+            public ActionResult invoke(DSInfo target, ActionInvocation invocation) {
+                ((MainNode) target.get()).handleAddIotHub(invocation.getParameters());
                 return null;
             }
         };
@@ -59,16 +59,16 @@ public class MainNode extends DSMainNode {
             }
 
             @Override
-            public void onUnsubscribed(DSTopic topic, DSNode node, DSInfo child) {
+            public void onUnsubscribed(DSITopic topic, DSNode node, DSInfo child) {
             }
         });
     }
 
-    public static DSIRequester getRequester() {
-        return requester;
-    }
+    private void handleAddIotHub(DSMap parameters) {
+        String name = parameters.getString("Name");
+        String connString = parameters.getString("Connection String");
 
-    public static void setRequester(DSIRequester requester) {
-        MainNode.requester = requester;
+        IotHubNode hub = new IotHubNode(connString);
+        add(name, hub);
     }
 }

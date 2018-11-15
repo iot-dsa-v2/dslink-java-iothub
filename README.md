@@ -183,10 +183,3 @@ This software contains unmodified binary redistributions of
 which is licensed and available under the Apache License 2.0. An original copy of the license agreement 
 can be found at https://git-wip-us.apache.org/repos/asf?p=commons-lang.git;a=blob;f=LICENSE.txt;h=d645695673349e3947e8e5ae42332d0ac3164cd7;hb=HEAD
 
-## History
-
-* Version 1.0.2
-  - Dependency update.
-* Version 1.0.0
-  - Hello World
-
