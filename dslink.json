@@ -1,6 +1,6 @@
 {
   "name": "dslink-java-v2-iothub",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Azure IoT Hub DSLink",
   "main": "bin/dslink-java-v2-iothub",
   "configs": {
@@ -9,7 +9,7 @@
       "value": "org.iot.dsa.iothub.MainNode"
     },
     "log": {
-      "desc": "all, trace, debug, fine, warn, info, error, admin, fatal, none",
+      "desc": "all, trace, debug, info, warn, error, fatal, none",
       "type": "enum",
       "value": "info"
     }
