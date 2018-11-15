@@ -15,7 +15,6 @@ import org.iot.dsa.node.DSInfo;
 import org.iot.dsa.node.DSList;
 import org.iot.dsa.node.DSMap;
 import org.iot.dsa.node.DSString;
-import org.iot.dsa.node.event.DSValueTopic;
 
 /**
  * An instance of this node This node represents a direct method of a local device. The IoT Hub that
@@ -26,42 +25,28 @@ import org.iot.dsa.node.event.DSValueTopic;
  * @author Daniel Shapiro
  */
 public class DirectMethodNode extends RemovableNode {
+
+    static final int METHOD_SUCCESS = 200;
+    static final int METHOD_NOT_DEFINED = 404;
+    static final int METHOD_FAILED = 500;
+    static final int METHOD_NOT_IMPLEMENTED = 501;
     @SuppressWarnings("serial")
     private static DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ") {
         public Date parse(String source, ParsePosition pos) {
             return super.parse(source.replaceFirst(":(?=[0-9]{2}$)", ""), pos);
         }
     };
-    static final int METHOD_SUCCESS = 200;
-    static final int METHOD_NOT_DEFINED = 404;
-    static final int METHOD_FAILED = 500;
-    static final int METHOD_NOT_IMPLEMENTED = 501;
-
+    private DSList invokeList = new DSList();
+    private DSInfo invokes;
     private String methodName;
     private String path;
-    private DSInfo invokes;
-    private DSList invokeList = new DSList();
 
-    public DirectMethodNode() {}
+    public DirectMethodNode() {
+    }
 
     public DirectMethodNode(String methodName, String path) {
         this.methodName = methodName;
         this.path = path;
-    }
-
-    @Override
-    protected void onStable() {
-        if (methodName == null) {
-            methodName = getName();
-        }
-        if (path == null) {
-            DSIObject p = get("Path");
-            path = p instanceof DSString ? p.toString() : "";
-        } else {
-            put("Path", DSString.valueOf(path)).setReadOnly(true);
-        }
-        invokes = add("Invocations", invokeList);
-        invokes.setTransient(true).setReadOnly(true);
     }
 
     public DeviceMethodData handle(Object methodData) {
@@ -112,23 +97,51 @@ public class DirectMethodNode extends RemovableNode {
     public void recordInvoke(DSMap parameters) {
         try {
             invokeList.add(new DSMap().put("Timestamp", dateFormat.format(new Date()))
-                    .put("Parameters", parameters));
-            fire(VALUE_TOPIC, invokes);
+                                      .put("Parameters", parameters));
+            fire(VALUE_CHANGED, invokes);
         } catch (Exception e) {
             warn(e);
         }
     }
-    
+
+    @Override
+    protected void onStable() {
+        if (methodName == null) {
+            methodName = getName();
+        }
+        if (path == null) {
+            DSIObject p = get("Path");
+            path = p instanceof DSString ? p.toString() : "";
+        } else {
+            put("Path", DSString.valueOf(path)).setReadOnly(true);
+        }
+        invokes = add("Invocations", invokeList);
+        invokes.setTransient(true).setReadOnly(true);
+    }
+
     private static class DirectMethodInvokeHandler extends AbstractInvokeHandler {
+
         boolean done = false;
         private DSList results;
-        
+
         DirectMethodInvokeHandler(DSList results) {
             this.results = results;
         }
 
         @Override
+        public void onClose() {
+            synchronized (results) {
+                results.notifyAll();
+                done = true;
+            }
+        }
+
+        @Override
         public void onColumns(DSList list) {
+        }
+
+        @Override
+        public void onError(ErrorType type, String msg) {
         }
 
         @Override
@@ -159,18 +172,6 @@ public class DirectMethodNode extends RemovableNode {
             synchronized (results) {
                 results.add(row.copy());
             }
-        }
-
-        @Override
-        public void onClose() {
-            synchronized (results) {
-                results.notifyAll();
-                done = true;
-            }
-        }
-
-        @Override
-        public void onError(ErrorType type, String msg) {
         }
 
     }

@@ -36,7 +36,6 @@ import org.iot.dsa.node.action.ActionResult;
 import org.iot.dsa.node.action.ActionSpec;
 import org.iot.dsa.node.action.ActionSpec.ResultType;
 import org.iot.dsa.node.action.ActionTable;
-import org.iot.dsa.node.action.DSAbstractAction;
 import org.iot.dsa.node.action.DSAction;
 
 /**
@@ -49,9 +48,8 @@ public class IotHubNode extends RemovableNode {
     private String connectionString;
 
     private DSNode localNode;
-    private DSNode remoteNode;
-
     private DeviceMethod methodClient;
+    private DSNode remoteNode;
     private DeviceTwin twinClient;
 
     public IotHubNode() {
@@ -80,165 +78,7 @@ public class IotHubNode extends RemovableNode {
         return twinClient;
     }
 
-    @Override
-    protected void declareDefaults() {
-        super.declareDefaults();
-        declareDefault("Local", new LocalNode());
-        declareDefault("Remote", new RemoteNode());
-        declareDefault("Read Messages", makeReadMessagesAction());
-        declareDefault("Get File Upload Notifications", makeReadFileNotificationsAction());
-    }
-
-    public static class LocalNode extends DSNode {
-
-        public LocalNode() {
-            super();
-        }
-
-        @Override
-        protected void declareDefaults() {
-            super.declareDefaults();
-            declareDefault("Create Local Device", makeCreateDeviceAction());
-        }
-    }
-
-    public static class RemoteNode extends DSNode {
-
-        public RemoteNode() {
-            super();
-        }
-
-        @Override
-        protected void declareDefaults() {
-            super.declareDefaults();
-            declareDefault("Add Remote Device", makeAddDeviceAction());
-        }
-    }
-
-    @Override
-    protected void onStarted() {
-        if (connectionString == null) {
-            DSIObject cs = get("Connection String");
-            connectionString = cs instanceof DSString ? ((DSString) cs).toString() : "";
-        }
-    }
-
-    @Override
-    protected void onStable() {
-        localNode = getNode("Local");
-        remoteNode = getNode("Remote");
-        init();
-    }
-
-    private void init() {
-        put("Connection String", DSString.valueOf(connectionString)).setReadOnly(true);
-        createMethodClient();
-        createTwinClient();
-        put("Edit", makeEditAction()).setTransient(true);
-    }
-
-    private void createMethodClient() {
-        try {
-            methodClient = DeviceMethod.createFromConnectionString(connectionString);
-        } catch (IOException e) {
-            warn("Error creating method client: " + e);
-        }
-    }
-
-    private void createTwinClient() {
-        try {
-            twinClient = DeviceTwin.createFromConnectionString(connectionString);
-        } catch (IOException e) {
-            warn("Error creating twin client: " + e);
-        }
-    }
-
-    private DSAction makeEditAction() {
-        DSAction act = new DSAction() {
-            @Override
-            public ActionResult invoke(DSInfo info, ActionInvocation invocation) {
-                ((IotHubNode) info.getParent()).edit(invocation.getParameters());
-                return null;
-            }
-        };
-        act.addDefaultParameter("Connection String", DSString.valueOf(connectionString), null);
-        return act;
-    }
-
-    private static DSAction makeCreateDeviceAction() {
-        DSAction act = new DSAction() {
-            @Override
-            public ActionResult invoke(DSInfo info, ActionInvocation invocation) {
-                ((IotHubNode) info.getParent().getParent())
-                        .createDevice(invocation.getParameters());
-                return null;
-            }
-        };
-        act.addParameter("Device ID", DSValueType.STRING, null);
-        act.addParameter("Protocol", DSJavaEnum.valueOf(IotHubClientProtocol.MQTT), null);
-        return act;
-    }
-
-    private DSAction makeReadMessagesAction() {
-        DSAction act = new DSAction() {
-            @Override
-            public ActionResult invoke(DSInfo info, ActionInvocation invocation) {
-                return ((IotHubNode) info.getParent()).readMessages(info, invocation);
-            }
-        };
-        act.addParameter("EventHub Compatible Name", DSValueType.STRING, null);
-        act.addParameter("EventHub Compatible Endpoint", DSValueType.STRING, null);
-        act.addParameter("Partition ID", DSValueType.STRING, null).setPlaceHolder("0");
-        act.addParameter("Start Time", DSValueType.STRING, "Optional - defaults to 'now'")
-           .setPlaceHolder("Optional");
-        act.setResultType(ResultType.STREAM_TABLE);
-        return act;
-    }
-
-    private static DSAction makeAddDeviceAction() {
-        DSAction act = new DSAction() {
-            @Override
-            public ActionResult invoke(DSInfo info, ActionInvocation invocation) {
-                ((IotHubNode) info.getParent().getParent()).addDevice(invocation.getParameters());
-                return null;
-            }
-        };
-        act.addParameter("Device ID", DSValueType.STRING, null);
-        return act;
-    }
-
-    private static DSAction makeReadFileNotificationsAction() {
-        DSAction act = new DSAction() {
-            @Override
-            public ActionResult invoke(DSInfo info, ActionInvocation invocation) {
-                return ((IotHubNode) info.getParent()).readFileNotifications(info, invocation);
-            }
-        };
-        act.addParameter("Protocol", DSJavaEnum.valueOf(IotHubServiceClientProtocol.AMQPS), null);
-        act.setResultType(ResultType.STREAM_TABLE);
-        return act;
-    }
-
-
-    private void edit(DSMap parameters) {
-        connectionString = parameters.getString("Connection String");
-        init();
-    }
-
-    private void addDevice(DSMap parameters) {
-        String id = parameters.getString("Device ID");
-        remoteNode.add(id, new RemoteDeviceNode(this, id));
-    }
-
-    private void createDevice(DSMap parameters) {
-        String id = parameters.getString("Device ID");
-        String protocolStr = parameters.getString("Protocol");
-        IotHubClientProtocol protocol = IotHubClientProtocol.valueOf(protocolStr);
-        localNode.add(id, new LocalDeviceNode(this, id, protocol));
-    }
-
-    public ActionResult readMessages(DSInfo actionInfo, ActionInvocation invocation) {
-        final DSAbstractAction action = actionInfo.getAction();
+    public ActionResult readMessages(final DSAction action, ActionInvocation invocation) {
         DSMap parameters = invocation.getParameters();
         String name = parameters.getString("EventHub Compatible Name");
         String endpt = parameters.getString("EventHub Compatible Endpoint");
@@ -325,6 +165,243 @@ public class IotHubNode extends RemovableNode {
         };
     }
 
+    @Override
+    protected void declareDefaults() {
+        super.declareDefaults();
+        declareDefault("Local", new LocalNode());
+        declareDefault("Remote", new RemoteNode());
+        declareDefault("Read Messages", makeReadMessagesAction());
+        declareDefault("Get File Upload Notifications", makeReadFileNotificationsAction());
+    }
+
+    @Override
+    protected void onStable() {
+        localNode = getNode("Local");
+        remoteNode = getNode("Remote");
+        init();
+    }
+
+    @Override
+    protected void onStarted() {
+        if (connectionString == null) {
+            DSIObject cs = get("Connection String");
+            connectionString = cs instanceof DSString ? ((DSString) cs).toString() : "";
+        }
+    }
+
+    private void addDevice(DSMap parameters) {
+        String id = parameters.getString("Device ID");
+        remoteNode.add(id, new RemoteDeviceNode(this, id));
+    }
+
+    private void createDevice(DSMap parameters) {
+        String id = parameters.getString("Device ID");
+        String protocolStr = parameters.getString("Protocol");
+        IotHubClientProtocol protocol = IotHubClientProtocol.valueOf(protocolStr);
+        localNode.add(id, new LocalDeviceNode(this, id, protocol));
+    }
+
+    private void createMethodClient() {
+        try {
+            methodClient = DeviceMethod.createFromConnectionString(connectionString);
+        } catch (IOException e) {
+            warn("Error creating method client: " + e);
+        }
+    }
+
+    private void createTwinClient() {
+        try {
+            twinClient = DeviceTwin.createFromConnectionString(connectionString);
+        } catch (IOException e) {
+            warn("Error creating twin client: " + e);
+        }
+    }
+
+    private void edit(DSMap parameters) {
+        connectionString = parameters.getString("Connection String");
+        init();
+    }
+
+    private void init() {
+        put("Connection String", DSString.valueOf(connectionString)).setReadOnly(true);
+        createMethodClient();
+        createTwinClient();
+        put("Edit", makeEditAction()).setTransient(true);
+    }
+
+    private static DSAction makeAddDeviceAction() {
+        DSAction act = new DSAction.Parameterless() {
+            @Override
+            public ActionResult invoke(DSInfo target, ActionInvocation invocation) {
+                ((IotHubNode) target.getNode().getParent()).addDevice(invocation.getParameters());
+                return null;
+            }
+        };
+        act.addParameter("Device ID", DSValueType.STRING, null);
+        return act;
+    }
+
+    private static DSAction makeCreateDeviceAction() {
+        DSAction act = new DSAction.Parameterless() {
+            @Override
+            public ActionResult invoke(DSInfo target, ActionInvocation invocation) {
+                ((IotHubNode) target.getNode().getParent())
+                        .createDevice(invocation.getParameters());
+                return null;
+            }
+        };
+        act.addParameter("Device ID", DSValueType.STRING, null);
+        act.addParameter("Protocol", DSJavaEnum.valueOf(IotHubClientProtocol.MQTT), null);
+        return act;
+    }
+
+    private DSAction makeEditAction() {
+        DSAction act = new DSAction.Parameterless() {
+            @Override
+            public ActionResult invoke(DSInfo target, ActionInvocation invocation) {
+                ((IotHubNode) target.get()).edit(invocation.getParameters());
+                return null;
+            }
+        };
+        act.addDefaultParameter("Connection String", DSString.valueOf(connectionString), null);
+        return act;
+    }
+
+    private static DSAction makeReadFileNotificationsAction() {
+        DSAction act = new DSAction.Parameterless() {
+            @Override
+            public ActionResult invoke(DSInfo target, ActionInvocation invocation) {
+                return ((IotHubNode) target.get()).readFileNotifications(this, invocation);
+            }
+        };
+        act.addParameter("Protocol", DSJavaEnum.valueOf(IotHubServiceClientProtocol.AMQPS), null);
+        act.setResultType(ResultType.STREAM_TABLE);
+        return act;
+    }
+
+    private DSAction makeReadMessagesAction() {
+        DSAction act = new DSAction.Parameterless() {
+            @Override
+            public ActionResult invoke(DSInfo info, ActionInvocation invocation) {
+                return ((IotHubNode) info.get()).readMessages(this, invocation);
+            }
+        };
+        act.addParameter("EventHub Compatible Name", DSValueType.STRING, null);
+        act.addParameter("EventHub Compatible Endpoint", DSValueType.STRING, null);
+        act.addParameter("Partition ID", DSValueType.STRING, null).setPlaceHolder("0");
+        act.addParameter("Start Time", DSValueType.STRING, "Optional - defaults to 'now'")
+           .setPlaceHolder("Optional");
+        act.setResultType(ResultType.STREAM_TABLE);
+        return act;
+    }
+
+    private ActionResult readFileNotifications(final DSAction action,
+                                               final ActionInvocation invocation) {
+        DSMap parameters = invocation.getParameters();
+        String protocolStr = parameters.getString("Protocol");
+        IotHubServiceClientProtocol protocol = protocolStr.endsWith("WS")
+                ? IotHubServiceClientProtocol.AMQPS_WS : IotHubServiceClientProtocol.AMQPS;
+        final ServiceClient serviceClient;
+        final FileUploadNotificationReceiver fileUploadNotificationReceiver;
+        try {
+            serviceClient = ServiceClient.createFromConnectionString(connectionString, protocol);
+            serviceClient.open();
+            fileUploadNotificationReceiver = serviceClient.getFileUploadNotificationReceiver();
+            fileUploadNotificationReceiver.open();
+        } catch (Exception e) {
+            warn("Failed to create receiver: " + e.getMessage());
+            throw new DSRequestException(e.getMessage());
+        }
+
+        if (fileUploadNotificationReceiver != null) {
+            DSRuntime.run(new Runnable() {
+                @Override
+                public void run() {
+                    receiveFileNotifications(fileUploadNotificationReceiver, invocation);
+                }
+            });
+        }
+        return new ActionTable() {
+            private List<DSMap> cols;
+
+            @Override
+            public ActionSpec getAction() {
+                return action;
+            }
+
+            @Override
+            public int getColumnCount() {
+                if (cols == null) {
+                    cols = new ArrayList<DSMap>();
+                    cols.add(Util.makeColumn("Enqueued Time", DSValueType.STRING));
+                    cols.add(Util.makeColumn("Device ID", DSValueType.STRING));
+                    cols.add(Util.makeColumn("Blob URI", DSValueType.STRING));
+                    cols.add(Util.makeColumn("Blob Name", DSValueType.STRING));
+                    cols.add(Util.makeColumn("Last Updated", DSValueType.STRING));
+                    cols.add(Util.makeColumn("Blob Size(Bytes)", DSValueType.NUMBER));
+                }
+                return cols.size();
+            }
+
+            @Override
+            public void getMetadata(int col, DSMap bucket) {
+                bucket.putAll(cols.get(col));
+            }
+
+            @Override
+            public DSIValue getValue(int col) {
+                return null;
+            }
+
+            @Override
+            public boolean next() {
+                return false;
+            }
+
+            @Override
+            public void onClose() {
+                if (fileUploadNotificationReceiver != null) {
+                    try {
+                        fileUploadNotificationReceiver.close();
+                    } catch (IOException e) {
+                    }
+                }
+                if (serviceClient != null) {
+                    try {
+                        serviceClient.close();
+                    } catch (IOException e) {
+                    }
+                }
+            }
+
+        };
+    }
+
+    private void receiveFileNotifications(FileUploadNotificationReceiver receiver,
+                                          ActionInvocation invocation) {
+        try {
+            while (invocation.isOpen()) {
+                System.out.println("Recieve file upload notifications...");
+                FileUploadNotification notification = receiver.receive();
+                if (notification != null) {
+                    String enqTime = notification.getEnqueuedTimeUtcDate().toInstant().toString();
+                    String devId = notification.getDeviceId();
+                    String blobUri = notification.getBlobUri();
+                    String blobName = notification.getBlobName();
+                    String lastUpdate =
+                            notification.getLastUpdatedTimeDate().toInstant().toString();
+                    Long blobBytes = notification.getBlobSizeInBytes();
+                    DSList row = new DSList().add(enqTime).add(devId).add(blobUri).add(blobName)
+                                             .add(lastUpdate).add(blobBytes);
+                    invocation.send(row);
+                }
+            }
+        } catch (Exception e) {
+            warn(e);
+            invocation.close(e);
+        }
+    }
+
     private void receiveMessages(final EventHubClient client, final String partitionId,
                                  final Instant start, final ActionInvocation invocation)
             throws ServiceBusException {
@@ -375,111 +452,29 @@ public class IotHubNode extends RemovableNode {
               });
     }
 
-    private ActionResult readFileNotifications(DSInfo actionInfo,
-                                               final ActionInvocation invocation) {
-        final DSAbstractAction action = actionInfo.getAction();
-        DSMap parameters = invocation.getParameters();
-        String protocolStr = parameters.getString("Protocol");
-        IotHubServiceClientProtocol protocol = protocolStr.endsWith("WS")
-                ? IotHubServiceClientProtocol.AMQPS_WS : IotHubServiceClientProtocol.AMQPS;
-        final ServiceClient serviceClient;
-        final FileUploadNotificationReceiver fileUploadNotificationReceiver;
-        try {
-            serviceClient = ServiceClient.createFromConnectionString(connectionString, protocol);
-            serviceClient.open();
-            fileUploadNotificationReceiver = serviceClient.getFileUploadNotificationReceiver();
-            fileUploadNotificationReceiver.open();
-        } catch (Exception e) {
-            warn("Failed to create receiver: " + e.getMessage());
-            throw new DSRequestException(e.getMessage());
+    public static class LocalNode extends DSNode {
+
+        public LocalNode() {
+            super();
         }
 
-        if (fileUploadNotificationReceiver != null) {
-            DSRuntime.run(new Runnable() {
-                @Override
-                public void run() {
-                    receiveFileNotifications(fileUploadNotificationReceiver, invocation);
-                }
-            });
+        @Override
+        protected void declareDefaults() {
+            super.declareDefaults();
+            declareDefault("Create Local Device", makeCreateDeviceAction());
         }
-        return new ActionTable() {
-            private List<DSMap> cols;
-
-            @Override
-            public void onClose() {
-                if (fileUploadNotificationReceiver != null) {
-                    try {
-                        fileUploadNotificationReceiver.close();
-                    } catch (IOException e) {
-                    }
-                }
-                if (serviceClient != null) {
-                    try {
-                        serviceClient.close();
-                    } catch (IOException e) {
-                    }
-                }
-            }
-
-            @Override
-            public ActionSpec getAction() {
-                return action;
-            }
-
-            @Override
-            public int getColumnCount() {
-                if (cols == null) {
-                    cols = new ArrayList<DSMap>();
-                    cols.add(Util.makeColumn("Enqueued Time", DSValueType.STRING));
-                    cols.add(Util.makeColumn("Device ID", DSValueType.STRING));
-                    cols.add(Util.makeColumn("Blob URI", DSValueType.STRING));
-                    cols.add(Util.makeColumn("Blob Name", DSValueType.STRING));
-                    cols.add(Util.makeColumn("Last Updated", DSValueType.STRING));
-                    cols.add(Util.makeColumn("Blob Size(Bytes)", DSValueType.NUMBER));
-                }
-                return cols.size();
-            }
-
-            @Override
-            public void getMetadata(int col, DSMap bucket) {
-                bucket.putAll(cols.get(col));
-            }
-
-            @Override
-            public DSIValue getValue(int col) {
-                return null;
-            }
-
-            @Override
-            public boolean next() {
-                return false;
-            }
-
-        };
     }
 
-    private void receiveFileNotifications(FileUploadNotificationReceiver receiver,
-                                          ActionInvocation invocation) {
-        try {
-            while (invocation.isOpen()) {
-                System.out.println("Recieve file upload notifications...");
-                FileUploadNotification notification = receiver.receive();
-                if (notification != null) {
-                    String enqTime = notification.getEnqueuedTimeUtcDate().toInstant().toString();
-                    String devId = notification.getDeviceId();
-                    String blobUri = notification.getBlobUri();
-                    String blobName = notification.getBlobName();
-                    String lastUpdate =
-                            notification.getLastUpdatedTimeDate().toInstant().toString();
-                    Long blobBytes = notification.getBlobSizeInBytes();
-                    DSList row = new DSList().add(enqTime).add(devId).add(blobUri).add(blobName)
-                                             .add(lastUpdate).add(blobBytes);
-                    invocation.send(row);
-                }
-            }
-        } catch (Exception e) {
-            warn(e);
-            invocation.close(e);
+    public static class RemoteNode extends DSNode {
+
+        public RemoteNode() {
+            super();
+        }
+
+        @Override
+        protected void declareDefaults() {
+            super.declareDefaults();
+            declareDefault("Add Remote Device", makeAddDeviceAction());
         }
     }
 

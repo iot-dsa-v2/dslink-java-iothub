@@ -67,12 +67,12 @@ public class D2CTest {
                 .put("Partition ID", partitionId);
         when(invocation.getParameters()).thenReturn(parameters1);
         when(invocation.isOpen()).thenReturn(done);
-        recvHub.readMessages(actionInfo1, invocation);
+        recvHub.readMessages(actionInfo1.getAction(), invocation);
 
         DSInfo actionInfo2 = mock(DSInfo.class);
         when(actionInfo2.getAction()).thenReturn(null);
         DSMap parameters2 = new DSMap().put("Message", message).put("Properties", props);
-        sendDev.sendD2CMessage(actionInfo2, parameters2);
+        sendDev.sendD2CMessage(actionInfo2.getAction(), parameters2);
 
         class IsMatchingRow extends ArgumentMatcher<DSList> {
             public boolean matches(Object o) {
