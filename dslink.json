@@ -1,6 +1,6 @@
 {
   "name": "dslink-java-v2-iothub",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "Azure IoT Hub DSLink",
   "main": "bin/dslink-java-v2-iothub",
   "configs": {
