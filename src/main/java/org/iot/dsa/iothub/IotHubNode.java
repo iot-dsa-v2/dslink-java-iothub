@@ -37,6 +37,7 @@ import org.iot.dsa.node.action.ActionSpec;
 import org.iot.dsa.node.action.ActionSpec.ResultType;
 import org.iot.dsa.node.action.ActionTable;
 import org.iot.dsa.node.action.DSAction;
+import org.iot.dsa.util.DSException;
 
 /**
  * An instance of this node represents a specific Azure IoT Hub.
@@ -200,6 +201,17 @@ public class IotHubNode extends RemovableNode {
         IotHubClientProtocol protocol = IotHubClientProtocol.valueOf(protocolStr);
         localNode.add(id, new LocalDeviceNode(this, id, protocol));
     }
+    
+    private void addDeviceByConnStr(DSMap parameters) {
+        String connStr = parameters.getString("Connection String"); 
+        String id = Util.getFromConnString(connStr, "DeviceId");
+        if (id == null) {
+            DSException.throwRuntime(new IllegalArgumentException("Device Connection String missing Device ID"));
+        }
+        String protocolStr = parameters.getString("Protocol");
+        IotHubClientProtocol protocol = IotHubClientProtocol.valueOf(protocolStr);
+        localNode.add(id, new LocalDeviceNode(this, id, protocol, connStr));
+    }
 
     private void createMethodClient() {
         try {
@@ -251,6 +263,20 @@ public class IotHubNode extends RemovableNode {
             }
         };
         act.addParameter("Device ID", DSValueType.STRING, null);
+        act.addParameter("Protocol", DSJavaEnum.valueOf(IotHubClientProtocol.MQTT), null);
+        return act;
+    }
+    
+    private static DSAction makeAddDeviceByConnStrAction() {
+        DSAction act = new DSAction.Parameterless() {
+            @Override
+            public ActionResult invoke(DSInfo target, ActionInvocation invocation) {
+                ((IotHubNode) target.getNode().getParent())
+                    .addDeviceByConnStr(invocation.getParameters());
+                return null;
+            }
+        };
+        act.addParameter("Connection String", DSValueType.STRING, null);
         act.addParameter("Protocol", DSJavaEnum.valueOf(IotHubClientProtocol.MQTT), null);
         return act;
     }
@@ -462,6 +488,7 @@ public class IotHubNode extends RemovableNode {
         protected void declareDefaults() {
             super.declareDefaults();
             declareDefault("Create Local Device", makeCreateDeviceAction());
+            declareDefault("Add Local Device by Connection String", makeAddDeviceByConnStrAction());
         }
     }
 

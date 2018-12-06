@@ -80,4 +80,18 @@ public class Util {
             map.put(key, value.toString());
         }
     }
+    
+    public static String getFromConnString(String connStr, String key) {
+        key = key + "=";
+        int idx = connStr.indexOf(key);
+        if (idx == -1) {
+            return null;
+        }
+        String value = connStr.substring(idx + key.length());
+        idx = value.indexOf(';');
+        if (idx > -1) {
+            value = value.substring(0, idx);
+        }
+        return value;
+    }
 }

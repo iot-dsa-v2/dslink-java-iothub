@@ -78,6 +78,11 @@ public class LocalDeviceNode extends RemovableNode {
         this.deviceId = deviceId;
         this.protocol = protocol;
     }
+    
+    public LocalDeviceNode(IotHubNode hubNode, String deviceId, IotHubClientProtocol protocol, String connectionString) {
+        this(hubNode, deviceId, protocol);
+        this.connectionString = connectionString;
+    }
 
     @Override
     public void delete() {
@@ -119,19 +124,17 @@ public class LocalDeviceNode extends RemovableNode {
         } catch (IotHubException iote) {
             device = registryManager.getDevice(deviceId);
         }
+        
+        String hostName = Util.getFromConnString(hubConnStr, "HostName");
+        if (hostName == null) {
+            throw new IOException("IoT Hub Connection String missing HostName");
+        }
 
-        int idx = hubConnStr.indexOf("HostName=");
-        if (idx == -1) {
-            throw new IOException("Connection String missing HostName");
-        }
-        String hostName = hubConnStr.substring(idx + 9);
-        idx = hostName.indexOf(';');
-        if (idx > -1) {
-            hostName = hostName.substring(0, idx);
-        }
         String deviceKey = device.getPrimaryKey();
-        connectionString =
+        if (connectionString == null || connectionString.isEmpty()) {
+            connectionString =
                 "HostName=" + hostName + ";DeviceId=" + deviceId + ";SharedAccessKey=" + deviceKey;
+        }
         return device.getStatus();
     }
 
@@ -224,6 +227,7 @@ public class LocalDeviceNode extends RemovableNode {
     protected void edit(DSMap parameters) {
         String protocolStr = parameters.getString("Protocol");
         protocol = IotHubClientProtocol.valueOf(protocolStr);
+        connectionString = parameters.getString("Connection String");
         init();
     }
 
@@ -259,6 +263,10 @@ public class LocalDeviceNode extends RemovableNode {
             DSIObject p = get("Protocol");
             protocol = p instanceof DSString ? IotHubClientProtocol.valueOf(p.toString())
                     : IotHubClientProtocol.MQTT;
+        }
+        if (connectionString == null || connectionString.isEmpty()) {
+            DSIObject cs = get("Connection String");
+            connectionString = cs instanceof DSString ? cs.toString() : null;
         }
     }
 
@@ -316,6 +324,10 @@ public class LocalDeviceNode extends RemovableNode {
             warn("Error getting device identity", e);
             put(status, DSString.valueOf("Error getting device identity: " + e.getMessage()));
         }
+        if (connectionString != null) {
+            put("Connection String", DSString.valueOf(connectionString)).setReadOnly(true);
+        }
+        
         try {
             setupClient();
 
@@ -379,6 +391,9 @@ public class LocalDeviceNode extends RemovableNode {
             }
         };
         act.addDefaultParameter("Protocol", DSJavaEnum.valueOf(protocol), null);
+        act.addDefaultParameter("Connection String",
+                connectionString != null ? DSString.valueOf(connectionString) : DSString.EMPTY,
+                "Will be automatically constructed if left empty");
         return act;
     }
 
