@@ -13,6 +13,7 @@ import org.iot.dsa.node.action.ActionResult;
 import org.iot.dsa.node.action.DSAction;
 import org.iot.dsa.node.event.DSIEvent;
 import org.iot.dsa.node.event.DSISubscriber;
+import org.iot.dsa.node.event.DSISubscription;
 import org.iot.dsa.node.event.DSITopic;
 
 /**
@@ -56,10 +57,6 @@ public class MainNode extends DSMainNode {
             @Override
             public void onEvent(DSNode node, DSInfo child, DSIEvent event) {
                 MainNode.setRequester(getLink().getConnection().getRequester());
-            }
-
-            @Override
-            public void onUnsubscribed(DSITopic topic, DSNode node, DSInfo child) {
             }
         });
     }

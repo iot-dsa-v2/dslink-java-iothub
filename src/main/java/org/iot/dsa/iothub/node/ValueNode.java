@@ -21,7 +21,7 @@ public abstract class ValueNode extends RemovableNode implements DSIValue, TwinP
     @Override
     protected void declareDefaults() {
         super.declareDefaults();
-        declareDefault("Value", getNullValue()).setReadOnly(true).setHidden(true);
+        declareDefault("Value", getNullValue()).setReadOnly(true).setPrivate(true);
     }
 
     protected abstract DSIValue getNullValue();
