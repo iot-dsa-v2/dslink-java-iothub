@@ -33,7 +33,7 @@ public abstract class ValueNode extends RemovableNode implements DSIValue, TwinP
     @Override
     public void onChildChanged(DSInfo child) {
         if (child == valueInfo) {
-            fire(VALUE_CHANGED, null);
+            fire(VALUE_CHANGED_EVENT, null, null);
         }
     }
 

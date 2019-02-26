@@ -406,7 +406,7 @@ public class RemoteDeviceNode extends RemovableNode {
                 return;
             }
             String name = info.getName();
-            DSIObject value = info.getObject();
+            DSIObject value = info.get();
             if (value instanceof TwinProperty) {
                 Object object = ((TwinProperty) value).getObject();
                 ((RemoteDeviceNode) info.getParent().getParent()).setDesiredProperty(name, object);
@@ -442,7 +442,7 @@ public class RemoteDeviceNode extends RemovableNode {
                 return;
             }
             String name = info.getName();
-            DSIObject value = info.getObject();
+            DSIObject value = info.get();
             if (value instanceof TwinProperty) {
                 Object object = ((TwinProperty) value).getObject();
                 ((RemoteDeviceNode) info.getParent().getParent()).setTag(name, object);
