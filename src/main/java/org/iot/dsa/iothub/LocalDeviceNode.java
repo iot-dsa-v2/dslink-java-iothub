@@ -109,7 +109,7 @@ public class LocalDeviceNode extends RemovableNode {
 
     public void incomingMessage(DSMap message) {
         c2dList.add(message);
-        fire(VALUE_CHANGED, c2d);
+        fire(VALUE_CHANGED_EVENT, c2d, null);
     }
 
     public DeviceStatus registerDeviceIdentity() throws IOException, JsonSyntaxException,
@@ -335,7 +335,7 @@ public class LocalDeviceNode extends RemovableNode {
             for (DSInfo info : reportedNode) {
                 if (!info.isAction()) {
                     String name = info.getName();
-                    DSIObject value = info.getObject();
+                    DSIObject value = info.get();
                     if (value instanceof TwinProperty) {
                         Object object = ((TwinProperty) value).getObject();
                         props.add(new Property(name, object));
@@ -576,7 +576,7 @@ public class LocalDeviceNode extends RemovableNode {
                 return;
             }
             String name = info.getName();
-            DSIObject value = info.getObject();
+            DSIObject value = info.get();
             if (value instanceof TwinProperty) {
                 Object object = ((TwinProperty) value).getObject();
                 ((LocalDeviceNode) info.getParent().getParent()).setReportedProperty(name, object);

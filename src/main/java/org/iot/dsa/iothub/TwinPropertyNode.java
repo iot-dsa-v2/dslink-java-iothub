@@ -50,7 +50,7 @@ public class TwinPropertyNode extends RemovableNode implements TwinProperty, Twi
         for (DSInfo info : this) {
             if (!info.isAction()) {
                 String name = info.getName();
-                DSIObject value = info.getObject();
+                DSIObject value = info.get();
                 if (value instanceof TwinProperty) {
                     map.put(name, ((TwinProperty) value).getObject());
                 }

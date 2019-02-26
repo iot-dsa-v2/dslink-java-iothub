@@ -5,16 +5,11 @@ import org.iot.dsa.dslink.DSLinkConnection;
 import org.iot.dsa.dslink.DSMainNode;
 import org.iot.dsa.node.DSInfo;
 import org.iot.dsa.node.DSMap;
-import org.iot.dsa.node.DSNode;
 import org.iot.dsa.node.DSString;
 import org.iot.dsa.node.DSValueType;
 import org.iot.dsa.node.action.ActionInvocation;
 import org.iot.dsa.node.action.ActionResult;
 import org.iot.dsa.node.action.DSAction;
-import org.iot.dsa.node.event.DSIEvent;
-import org.iot.dsa.node.event.DSISubscriber;
-import org.iot.dsa.node.event.DSISubscription;
-import org.iot.dsa.node.event.DSITopic;
 
 /**
  * This is the root node of the link.
@@ -53,12 +48,11 @@ public class MainNode extends DSMainNode {
 
     @Override
     protected void onStarted() {
-        getLink().getConnection().subscribe(DSLinkConnection.CONNECTED, null, new DSISubscriber() {
-            @Override
-            public void onEvent(DSNode node, DSInfo child, DSIEvent event) {
-                MainNode.setRequester(getLink().getConnection().getRequester());
+        getLink().getUpstream().subscribe(((event, node, child, data) -> {
+            if (event.equals(DSLinkConnection.CONNECTED_EVENT)) {
+                MainNode.setRequester(getLink().getUpstream().getRequester());
             }
-        });
+        }));
     }
 
     private void handleAddIotHub(DSMap parameters) {
