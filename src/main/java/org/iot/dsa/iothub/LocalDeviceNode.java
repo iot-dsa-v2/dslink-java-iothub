@@ -32,6 +32,7 @@ import org.iot.dsa.iothub.node.DoubleNode;
 import org.iot.dsa.iothub.node.ListNode;
 import org.iot.dsa.iothub.node.RemovableNode;
 import org.iot.dsa.iothub.node.StringNode;
+import org.iot.dsa.node.DSBool;
 import org.iot.dsa.node.DSFlexEnum;
 import org.iot.dsa.node.DSIObject;
 import org.iot.dsa.node.DSIValue;
@@ -148,7 +149,37 @@ public class LocalDeviceNode extends RemovableNode {
         for (Entry entry : properties) {
             msg.setProperty(entry.getKey(), entry.getValue().toString());
         }
+        boolean awaitResponse = parameters.getBoolean("Await Response");
         msg.setMessageId(java.util.UUID.randomUUID().toString());
+        if (!awaitResponse) {
+            client.sendEventAsync(msg, null, null);
+            return new ActionValues() {
+                
+                @Override
+                public DSIValue getValue(int index) {
+                    return DSString.valueOf("Message sent, not waiting for response");
+                }
+                
+                @Override
+                public void getMetadata(int index, DSMap bucket) {
+                    action.getColumnMetadata(index, bucket);
+                }
+                
+                @Override
+                public int getColumnCount() {
+                    return 1;
+                }
+                
+                @Override
+                public void onClose() {
+                }
+                
+                @Override
+                public ActionSpec getAction() {
+                    return action;
+                }
+            };
+        }
         final List<DSIValue> lockobj = new ArrayList<DSIValue>();
         client.sendEventAsync(msg, new ResponseCallback(), lockobj);
 
@@ -418,6 +449,7 @@ public class LocalDeviceNode extends RemovableNode {
         };
         act.addParameter("Message", DSValueType.STRING, null);
         act.addDefaultParameter("Properties", new DSMap(), null);
+        act.addDefaultParameter("Await Response", DSBool.TRUE, null);
         act.setResultType(ResultType.VALUES);
         act.addColumnMetadata("Response Status", DSValueType.STRING);
         return act;
