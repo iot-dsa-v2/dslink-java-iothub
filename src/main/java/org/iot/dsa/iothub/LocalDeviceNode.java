@@ -1,12 +1,14 @@
 package org.iot.dsa.iothub;
 
-import com.google.gson.JsonSyntaxException;
 import com.microsoft.azure.sdk.iot.device.DeviceClient;
 import com.microsoft.azure.sdk.iot.device.DeviceTwin.Device;
 import com.microsoft.azure.sdk.iot.device.DeviceTwin.DeviceMethodCallback;
 import com.microsoft.azure.sdk.iot.device.DeviceTwin.DeviceMethodData;
 import com.microsoft.azure.sdk.iot.device.DeviceTwin.Property;
+import com.microsoft.azure.sdk.iot.device.transport.IotHubConnectionStatus;
 import com.microsoft.azure.sdk.iot.device.IotHubClientProtocol;
+import com.microsoft.azure.sdk.iot.device.IotHubConnectionStatusChangeCallback;
+import com.microsoft.azure.sdk.iot.device.IotHubConnectionStatusChangeReason;
 import com.microsoft.azure.sdk.iot.device.IotHubEventCallback;
 import com.microsoft.azure.sdk.iot.device.IotHubMessageResult;
 import com.microsoft.azure.sdk.iot.device.IotHubStatusCode;
@@ -14,15 +16,11 @@ import com.microsoft.azure.sdk.iot.device.Message;
 import com.microsoft.azure.sdk.iot.device.MessageCallback;
 import com.microsoft.azure.sdk.iot.device.MessageProperty;
 import com.microsoft.azure.sdk.iot.device.MessageType;
-import com.microsoft.azure.sdk.iot.service.DeviceStatus;
-import com.microsoft.azure.sdk.iot.service.RegistryManager;
-import com.microsoft.azure.sdk.iot.service.exceptions.IotHubException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URISyntaxException;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -64,7 +62,6 @@ public class LocalDeviceNode extends RemovableNode {
     private String connectionString;
     private DSNode desiredNode;
     private String deviceId;
-    private IotHubNode hubNode;
     private DSNode methodsNode;
     private IotHubClientProtocol protocol;
     private ReportedPropsNode reportedNode;
@@ -74,14 +71,13 @@ public class LocalDeviceNode extends RemovableNode {
     public LocalDeviceNode() {
     }
 
-    public LocalDeviceNode(IotHubNode hubNode, String deviceId, IotHubClientProtocol protocol) {
-        this.hubNode = hubNode;
+    public LocalDeviceNode(String deviceId, IotHubClientProtocol protocol) {
         this.deviceId = deviceId;
         this.protocol = protocol;
     }
     
-    public LocalDeviceNode(IotHubNode hubNode, String deviceId, IotHubClientProtocol protocol, String connectionString) {
-        this(hubNode, deviceId, protocol);
+    public LocalDeviceNode(String deviceId, IotHubClientProtocol protocol, String connectionString) {
+        this(deviceId, protocol);
         this.connectionString = connectionString;
     }
 
@@ -111,32 +107,6 @@ public class LocalDeviceNode extends RemovableNode {
     public void incomingMessage(DSMap message) {
         c2dList.add(message);
         fire(VALUE_CHANGED_EVENT, c2d, null);
-    }
-
-    public DeviceStatus registerDeviceIdentity() throws IOException, JsonSyntaxException,
-            IotHubException, IllegalArgumentException, NoSuchAlgorithmException {
-        String hubConnStr = hubNode.getConnectionString();
-        RegistryManager registryManager = RegistryManager.createFromConnectionString(hubConnStr);
-
-        com.microsoft.azure.sdk.iot.service.Device device =
-                com.microsoft.azure.sdk.iot.service.Device.createFromId(deviceId, null, null);
-        try {
-            device = registryManager.addDevice(device);
-        } catch (IotHubException iote) {
-            device = registryManager.getDevice(deviceId);
-        }
-        
-        String hostName = Util.getFromConnString(hubConnStr, "HostName");
-        if (hostName == null) {
-            throw new IOException("IoT Hub Connection String missing HostName");
-        }
-
-        String deviceKey = device.getPrimaryKey();
-        if (connectionString == null || connectionString.isEmpty()) {
-            connectionString =
-                "HostName=" + hostName + ";DeviceId=" + deviceId + ";SharedAccessKey=" + deviceKey;
-        }
-        return device.getStatus();
     }
 
     public ActionResult sendD2CMessage(final DSAction action, DSMap parameters) {
@@ -224,6 +194,7 @@ public class LocalDeviceNode extends RemovableNode {
         this.client = new DeviceClient(connectionString, protocol);
         MessageCallback callback = new C2DMessageCallback();
         client.setMessageCallback(callback, null);
+        client.registerConnectionStatusChangeCallback(new ConnectionStatusCallback(), null);
 
         client.open();
 
@@ -268,13 +239,6 @@ public class LocalDeviceNode extends RemovableNode {
         status.setTransient(true);
         status.setReadOnly(true);
 
-        if (hubNode == null) {
-            DSNode n = getParent();
-            n = n.getParent();
-            if (n instanceof IotHubNode) {
-                hubNode = (IotHubNode) n;
-            }
-        }
         if (deviceId == null) {
             deviceId = getName();
         }
@@ -348,13 +312,7 @@ public class LocalDeviceNode extends RemovableNode {
                 warn(e);
             }
         }
-        try {
-            DeviceStatus deviceStatus = registerDeviceIdentity();
-            put(status, DSString.valueOf(deviceStatus.toString()));
-        } catch (Exception e) {
-            warn("Error getting device identity", e);
-            put(status, DSString.valueOf("Error getting device identity: " + e.getMessage()));
-        }
+
         if (connectionString != null) {
             put("Connection String", DSString.valueOf(connectionString)).setReadOnly(true);
         }
@@ -376,7 +334,7 @@ public class LocalDeviceNode extends RemovableNode {
             if (!props.isEmpty()) {
                 client.sendReportedProperties(props);
             }
-
+            //put(status, DSString.valueOf("Connected"));
         } catch (URISyntaxException | IOException e) {
             warn("Error initializing device client", e);
             put(status, DSString.valueOf("Error initializing device client: " + e.getMessage()));
@@ -388,8 +346,7 @@ public class LocalDeviceNode extends RemovableNode {
         DSAction act = new DSAction.Parameterless() {
             @Override
             public ActionResult invoke(DSInfo target, ActionInvocation invocation) {
-                ((LocalDeviceNode) target.getNode().getParent())
-                        .addDirectMethod(invocation.getParameters());
+                ((LocalDeviceNode) target.get()).addDirectMethod(invocation.getParameters());
                 return null;
             }
         };
@@ -402,8 +359,7 @@ public class LocalDeviceNode extends RemovableNode {
         DSAction act = new DSAction.Parameterless() {
             @Override
             public ActionResult invoke(DSInfo target, ActionInvocation invocation) {
-                ((LocalDeviceNode) target.getNode().getParent())
-                        .addReportedProp(invocation.getParameters());
+                ((LocalDeviceNode) target.get()).addReportedProp(invocation.getParameters());
                 return null;
             }
         };
@@ -589,6 +545,20 @@ public class LocalDeviceNode extends RemovableNode {
         public void execute(IotHubStatusCode responseStatus, Object callbackContext) {
             info("IoT Hub responded to device method operation with status "
                          + responseStatus.name());
+        }
+    }
+    
+    private class ConnectionStatusCallback implements IotHubConnectionStatusChangeCallback {
+        @Override
+        public void execute(IotHubConnectionStatus newStatus,
+                IotHubConnectionStatusChangeReason statusChangeReason, Throwable throwable,
+                Object callbackContext) {
+            put(status, DSString.valueOf(newStatus + ": " + statusChangeReason));
+            info("Connection status changed to " + newStatus + "; for reason " + statusChangeReason);
+            if (throwable != null) {
+                warn("", throwable);
+            }
+            
         }
     }
 
