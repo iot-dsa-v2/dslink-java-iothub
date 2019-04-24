@@ -14,7 +14,7 @@ import org.iot.dsa.node.DSValueType;
  *
  * @author Daniel Shapiro
  */
-public abstract class ValueNode extends RemovableNode implements DSIValue, TwinProperty {
+public abstract class ValueNode extends DSNode implements DSIValue, TwinProperty {
 
     private DSInfo valueInfo = getInfo("Value");
 
@@ -63,12 +63,12 @@ public abstract class ValueNode extends RemovableNode implements DSIValue, TwinP
     }
 
     @Override
-    public void delete() {
+    protected void onRemoved() {
+        super.onRemoved();
         DSNode parent = getParent();
         if (parent instanceof TwinPropertyContainer) {
             ((TwinPropertyContainer) parent).onDelete(getInfo());
         }
-        super.delete();
     }
 
     public abstract Object getObject();
