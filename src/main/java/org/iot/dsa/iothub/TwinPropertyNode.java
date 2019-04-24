@@ -7,7 +7,6 @@ import java.util.Set;
 import org.iot.dsa.iothub.node.BoolNode;
 import org.iot.dsa.iothub.node.DoubleNode;
 import org.iot.dsa.iothub.node.ListNode;
-import org.iot.dsa.iothub.node.RemovableNode;
 import org.iot.dsa.iothub.node.StringNode;
 import org.iot.dsa.node.DSFlexEnum;
 import org.iot.dsa.node.DSIObject;
@@ -24,21 +23,21 @@ import org.iot.dsa.node.action.DSAction;
  *
  * @author Daniel Shapiro
  */
-public class TwinPropertyNode extends RemovableNode implements TwinProperty, TwinPropertyContainer {
+public class TwinPropertyNode extends DSNode implements TwinProperty, TwinPropertyContainer {
 
     private Set<String> nulls = new HashSet<String>();
 
     public TwinPropertyNode() {
-
     }
-
+    
+    
     @Override
-    public void delete() {
+    protected void onRemoved() {
+        super.onRemoved();
         DSNode parent = getParent();
         if (parent instanceof TwinPropertyContainer) {
             ((TwinPropertyContainer) parent).onDelete(getInfo());
         }
-        super.delete();
     }
 
     @Override
