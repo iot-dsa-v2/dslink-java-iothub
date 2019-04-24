@@ -9,11 +9,11 @@ import org.iot.dsa.dslink.DSIRequester;
 import org.iot.dsa.dslink.requester.AbstractInvokeHandler;
 import org.iot.dsa.dslink.requester.ErrorType;
 import org.iot.dsa.io.json.JsonReader;
-import org.iot.dsa.iothub.node.RemovableNode;
 import org.iot.dsa.node.DSIObject;
 import org.iot.dsa.node.DSInfo;
 import org.iot.dsa.node.DSList;
 import org.iot.dsa.node.DSMap;
+import org.iot.dsa.node.DSNode;
 import org.iot.dsa.node.DSString;
 
 /**
@@ -24,7 +24,7 @@ import org.iot.dsa.node.DSString;
  *
  * @author Daniel Shapiro
  */
-public class DirectMethodNode extends RemovableNode {
+public class DirectMethodNode extends DSNode {
 
     static final int METHOD_SUCCESS = 200;
     static final int METHOD_NOT_DEFINED = 404;

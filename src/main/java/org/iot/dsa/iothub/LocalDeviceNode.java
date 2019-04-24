@@ -24,11 +24,12 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import org.iot.dsa.DSRuntime;
+import org.iot.dsa.conn.DSConnection;
 import org.iot.dsa.dslink.DSRequestException;
 import org.iot.dsa.iothub.node.BoolNode;
 import org.iot.dsa.iothub.node.DoubleNode;
 import org.iot.dsa.iothub.node.ListNode;
-import org.iot.dsa.iothub.node.RemovableNode;
 import org.iot.dsa.iothub.node.StringNode;
 import org.iot.dsa.node.DSBool;
 import org.iot.dsa.node.DSFlexEnum;
@@ -54,7 +55,7 @@ import org.iot.dsa.node.action.DSAction;
  *
  * @author Daniel Shapiro
  */
-public class LocalDeviceNode extends RemovableNode {
+public class LocalDeviceNode extends DSConnection {
 
     private DSInfo c2d;
     private DSList c2dList = new DSList();
@@ -80,10 +81,10 @@ public class LocalDeviceNode extends RemovableNode {
         this(deviceId, protocol);
         this.connectionString = connectionString;
     }
-
+    
     @Override
-    public void delete() {
-        super.delete();
+    protected void onRemoved() {
+        super.onRemoved();
         if (client != null) {
             try {
                 client.closeNow();
@@ -249,7 +250,7 @@ public class LocalDeviceNode extends RemovableNode {
         desiredNode = getNode("Desired Properties");
         reportedNode = (ReportedPropsNode) getNode("Reported Properties");
 
-        init();
+        DSRuntime.run(this);
     }
 
     @Override
@@ -338,6 +339,7 @@ public class LocalDeviceNode extends RemovableNode {
         } catch (URISyntaxException | IOException e) {
             warn("Error initializing device client", e);
             put(status, DSString.valueOf("Error initializing device client: " + e.getMessage()));
+            connDown("Error initializing device client: " + e.getMessage());
         }
         put("Edit", makeEditAction()).setTransient(true);
     }
@@ -346,7 +348,7 @@ public class LocalDeviceNode extends RemovableNode {
         DSAction act = new DSAction.Parameterless() {
             @Override
             public ActionResult invoke(DSInfo target, ActionInvocation invocation) {
-                ((LocalDeviceNode) target.get()).addDirectMethod(invocation.getParameters());
+                ((LocalDeviceNode) target.getParent()).addDirectMethod(invocation.getParameters());
                 return null;
             }
         };
@@ -359,7 +361,7 @@ public class LocalDeviceNode extends RemovableNode {
         DSAction act = new DSAction.Parameterless() {
             @Override
             public ActionResult invoke(DSInfo target, ActionInvocation invocation) {
-                ((LocalDeviceNode) target.get()).addReportedProp(invocation.getParameters());
+                ((LocalDeviceNode) target.getParent()).addReportedProp(invocation.getParameters());
                 return null;
             }
         };
@@ -558,7 +560,11 @@ public class LocalDeviceNode extends RemovableNode {
             if (throwable != null) {
                 warn("", throwable);
             }
-            
+            if (newStatus == IotHubConnectionStatus.DISCONNECTED) {
+                connDown(statusChangeReason.toString());
+            } else if (newStatus == IotHubConnectionStatus.CONNECTED) {
+                connOk();
+            }
         }
     }
 
@@ -622,5 +628,20 @@ public class LocalDeviceNode extends RemovableNode {
                 }
             }
         }
+    }
+
+    @Override
+    protected void doConnect() {
+        init();
+    }
+
+    @Override
+    protected void doDisconnect() {
+        // TODO Auto-generated method stub
+    }
+
+    @Override
+    protected void checkConfig() {
+        // TODO Auto-generated method stub
     }
 }
