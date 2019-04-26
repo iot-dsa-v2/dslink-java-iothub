@@ -110,7 +110,7 @@ can be found at https://git-wip-us.apache.org/repos/asf?p=commons-lang.git;a=blo
 
 ## Changelog
 
-###V ersion 1.1.0
+### Version 1.1.0
 
 - Service-Client functionality (previously under the REMOTE node, e.g. sending cloud-to-device messages) has been removed from the DSLink. The DSLink is now exclusively for acting as one or more IoT Hub devices.
   - What was previously the LOCAL node is now the root node of the DSLink. 
