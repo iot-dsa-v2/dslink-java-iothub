@@ -114,7 +114,7 @@ can be found at https://git-wip-us.apache.org/repos/asf?p=commons-lang.git;a=blo
 
 - Service-Client functionality (previously under the REMOTE node, e.g. sending cloud-to-device messages) has been removed from the DSLink. The DSLink is now exclusively for acting as one or more IoT Hub devices.
   - What was previously the LOCAL node is now the root node of the DSLink. 
-  - The ability to create new IoT Hub devices has been removed, as this used the service client to register the device identity with IoT Hub. Devices may now only be added by their connection strings (which can be found/generated on the [Azure Portal](https://portal.azure.com]).
+  - The ability to create new IoT Hub devices has been removed, as this used the service client to register the device identity with IoT Hub. Devices may now only be added by their connection strings (which can be found/generated on the [Azure Portal](https://portal.azure.com).
   - `nodes.zip` files from the previous version of the DSLink (1.0.13) will no longer work, but can be converted with a python script (see below).
   - paths to the DSLink (in dataflows, etc.) will need to be updated. E.g. `/downstream/iothub/main/exampleHub/Local/exampleDevice/...` should become `/downstream/iothub/main/exampleDevice/...`
 - The device node now shows more detailed and correct information about the status of the connection to IoT Hub.
