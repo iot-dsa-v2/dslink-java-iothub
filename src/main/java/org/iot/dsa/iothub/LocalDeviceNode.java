@@ -27,6 +27,8 @@ import java.util.List;
 import org.iot.dsa.DSRuntime;
 import org.iot.dsa.conn.DSConnection;
 import org.iot.dsa.dslink.DSRequestException;
+import org.iot.dsa.dslink.restadapter.Constants;
+import org.iot.dsa.dslink.restadapter.ResponseWrapper;
 import org.iot.dsa.iothub.node.BoolNode;
 import org.iot.dsa.iothub.node.DoubleNode;
 import org.iot.dsa.iothub.node.ListNode;
@@ -47,6 +49,7 @@ import org.iot.dsa.node.action.ActionInvocation;
 import org.iot.dsa.node.action.ActionResult;
 import org.iot.dsa.node.action.ActionSpec;
 import org.iot.dsa.node.action.ActionSpec.ResultType;
+import org.iot.dsa.time.DSDateTime;
 import org.iot.dsa.node.action.ActionValues;
 import org.iot.dsa.node.action.DSAction;
 
@@ -60,10 +63,12 @@ public class LocalDeviceNode extends DSConnection {
     private DSInfo c2d;
     private DSList c2dList = new DSList();
     private DeviceClient client;
+    private Object clientLock = new Object();
     private String connectionString;
     private DSNode desiredNode;
     private String deviceId;
     private DSNode methodsNode;
+    private DSNode rulesNode;
     private IotHubClientProtocol protocol;
     private ReportedPropsNode reportedNode;
     private DSInfo status;
@@ -85,11 +90,13 @@ public class LocalDeviceNode extends DSConnection {
     @Override
     protected void onRemoved() {
         super.onRemoved();
-        if (client != null) {
-            try {
-                client.closeNow();
-            } catch (IOException e) {
-                warn(e);
+        synchronized(clientLock) {
+            if (client != null) {
+                try {
+                    client.closeNow();
+                } catch (IOException e) {
+                    warn(e);
+                }
             }
         }
     }
@@ -111,108 +118,95 @@ public class LocalDeviceNode extends DSConnection {
     }
 
     public ActionResult sendD2CMessage(final DSAction action, DSMap parameters) {
-        if (client == null) {
-            throw new DSRequestException("Client not initialized");
-        }
         String msgStr = parameters.getString("Message");
-        Message msg = new Message(msgStr);
         DSMap properties = parameters.getMap("Properties");
-        for (Entry entry : properties) {
-            msg.setProperty(entry.getKey(), entry.getValue().toString());
-        }
         boolean awaitResponse = parameters.getBoolean("Await Response");
-        msg.setMessageId(java.util.UUID.randomUUID().toString());
-        if (!awaitResponse) {
-            client.sendEventAsync(msg, null, null);
-            return new ActionValues() {
-                
-                @Override
-                public DSIValue getValue(int index) {
-                    return DSString.valueOf("Message sent, not waiting for response");
-                }
-                
-                @Override
-                public void getMetadata(int index, DSMap bucket) {
-                    action.getColumnMetadata(index, bucket);
-                }
-                
-                @Override
-                public int getColumnCount() {
-                    return 1;
-                }
-                
-                @Override
-                public void onClose() {
-                }
-                
-                @Override
-                public ActionSpec getAction() {
-                    return action;
-                }
-            };
-        }
-        final List<DSIValue> lockobj = new ArrayList<DSIValue>();
-        client.sendEventAsync(msg, new ResponseCallback(), lockobj);
+        
+        final ResponseWrapper resp = doSendD2C(properties, msgStr, awaitResponse);
+        
+        return new ActionValues() {
 
+            @Override
+            public ActionSpec getAction() {
+                return action;
+            }
+
+            @Override
+            public int getColumnCount() {
+                return 1;
+            }
+
+            @Override
+            public void getMetadata(int col, DSMap bucket) {
+                action.getColumnMetadata(col, bucket);
+            }
+
+            @Override
+            public DSIValue getValue(int col) {
+                return DSString.valueOf(resp.getData());
+            }
+
+            @Override
+            public void onClose() {
+            }
+        };
+    }
+    
+    public ResponseWrapper doSendD2C(DSMap properties, String messageBody, boolean awaitResponse) {
+        final List<IotHubStatusCode> lockobj = new ArrayList<IotHubStatusCode>();
+        synchronized(clientLock) {
+            if (client == null) {
+                throw new DSRequestException("Client not initialized");
+            }
+            Message msg = new Message(messageBody);
+            for (Entry entry : properties) {
+                msg.setProperty(entry.getKey(), entry.getValue().toString());
+            }
+            msg.setMessageId(java.util.UUID.randomUUID().toString());
+            
+            if (!awaitResponse) {
+                client.sendEventAsync(msg, null, null);
+                return new SimpleResponseWrapper(202, "Message sent, not waiting for response", DSDateTime.currentTime());
+            }
+            client.sendEventAsync(msg, new ResponseCallback(), lockobj);
+        }
         synchronized (lockobj) {
             try {
                 lockobj.wait();
             } catch (InterruptedException e) {
             }
             if (lockobj.isEmpty()) {
-                lockobj.add(DSString.NULL);
+                return new SimpleResponseWrapper(408, "No response from Iot Hub", DSDateTime.currentTime());
             }
-            return new ActionValues() {
-
-                @Override
-                public ActionSpec getAction() {
-                    return action;
-                }
-
-                @Override
-                public int getColumnCount() {
-                    return lockobj.size();
-                }
-
-                @Override
-                public void getMetadata(int col, DSMap bucket) {
-                    action.getColumnMetadata(col, bucket);
-                }
-
-                @Override
-                public DSIValue getValue(int col) {
-                    return lockobj.get(col);
-                }
-
-                @Override
-                public void onClose() {
-                }
-            };
+            IotHubStatusCode respStatus = lockobj.get(0);
+            return new SimpleResponseWrapper(Util.iotHubStatusToHttpCode(respStatus), respStatus.toString(), DSDateTime.currentTime());
         }
     }
 
     public void setupClient() throws IOException, URISyntaxException {
-        this.client = new DeviceClient(connectionString, protocol);
-        MessageCallback callback = new C2DMessageCallback();
-        client.setMessageCallback(callback, null);
-        client.registerConnectionStatusChangeCallback(new ConnectionStatusCallback(), null);
+        synchronized (clientLock) {
+            this.client = new DeviceClient(connectionString, protocol);
+            MessageCallback callback = new C2DMessageCallback();
+            client.setMessageCallback(callback, null);
+            client.registerConnectionStatusChangeCallback(new ConnectionStatusCallback(), null);
 
-        client.open();
+            client.open();
 
-        client.subscribeToDeviceMethod(new DirectMethodCallback(), null,
-                                       new DirectMethodStatusCallback(), null);
+            client.subscribeToDeviceMethod(new DirectMethodCallback(), null,
+                                           new DirectMethodStatusCallback(), null);
 
-        twin = new Device() {
+            twin = new Device() {
 
-            @Override
-            public void PropertyCall(String propertyKey, Object propertyValue, Object context) {
-                desiredNode.put(propertyKey, DSString.valueOf(propertyValue)).setTransient(true)
-                           .setReadOnly(true);
-            }
-        };
+                @Override
+                public void PropertyCall(String propertyKey, Object propertyValue, Object context) {
+                    desiredNode.put(propertyKey, DSString.valueOf(propertyValue)).setTransient(true)
+                               .setReadOnly(true);
+                }
+            };
 
-        client.startDeviceTwin(new DeviceTwinStatusCallback(), null, twin, null);
-        client.subscribeToDesiredProperties(twin.getDesiredProp());
+            client.startDeviceTwin(new DeviceTwinStatusCallback(), null, twin, null);
+            client.subscribeToDesiredProperties(twin.getDesiredProp());
+        }
     }
 
     @Override
@@ -221,6 +215,7 @@ public class LocalDeviceNode extends DSConnection {
         declareDefault("Methods", new MethodsNode());
         declareDefault("Desired Properties", new DSNode());
         declareDefault("Reported Properties", new ReportedPropsNode());
+        declareDefault("D2C Rules", new D2CRoutingNode());
 
         declareDefault("Send D2C Message", makeSendMessageAction());
         declareDefault("Upload File", makeUploadFileAction());
@@ -249,6 +244,7 @@ public class LocalDeviceNode extends DSConnection {
         methodsNode = getNode("Methods");
         desiredNode = getNode("Desired Properties");
         reportedNode = (ReportedPropsNode) getNode("Reported Properties");
+        rulesNode = getNode("D2C Rules");
 
         DSRuntime.run(this);
     }
@@ -303,14 +299,21 @@ public class LocalDeviceNode extends DSConnection {
             }
         }
     }
+    
+    private void addRule(DSMap parameters) {
+        String name = parameters.getString(Constants.NAME);
+        rulesNode.add(name, new D2CRuleNode(parameters));
+    }
 
     private void init() {
         put("Protocol", DSString.valueOf(protocol.toString())).setReadOnly(true);
-        if (client != null) {
-            try {
-                client.closeNow();
-            } catch (IOException e) {
-                warn(e);
+        synchronized(clientLock) {
+            if (client != null) {
+                try {
+                    client.closeNow();
+                } catch (IOException e) {
+                    warn(e);
+                }
             }
         }
 
@@ -368,6 +371,23 @@ public class LocalDeviceNode extends DSConnection {
         act.addParameter("Name", DSValueType.STRING, null);
         act.addParameter("Value Type", DSFlexEnum.valueOf("String", Util.getSimpleValueTypes()),
                          null);
+        return act;
+    }
+    
+    private static DSAction makeAddRuleAction() {
+        DSAction act = new DSAction.Parameterless() {
+            @Override
+            public ActionResult invoke(DSInfo target, ActionInvocation request) {
+                ((LocalDeviceNode) target.getParent()).addRule(request.getParameters());
+                return null;
+            }
+        };
+        act.addParameter(Constants.NAME, DSValueType.STRING, null);
+        act.addParameter(Constants.SUB_PATH, DSValueType.STRING, null);
+        act.addDefaultParameter("Properties", new DSMap(), null);
+        act.addParameter(Constants.REQUEST_BODY, DSValueType.STRING, null);
+        act.addParameter(Constants.MIN_REFRESH_RATE, DSValueType.NUMBER, "Optional, ensures at least this many seconds between updates");
+        act.addParameter(Constants.MAX_REFRESH_RATE, DSValueType.NUMBER, "Optional, ensures an update gets sent every this many seconds");
         return act;
     }
 
@@ -611,18 +631,25 @@ public class LocalDeviceNode extends DSConnection {
         }
 
     }
+    
+    public static class D2CRoutingNode extends DSNode {
+        
+        @Override
+        protected void declareDefaults() {
+            super.declareDefaults();
+            declareDefault(Constants.ACT_ADD_RULE, makeAddRuleAction());
+        }
+    }
 
     private class ResponseCallback implements IotHubEventCallback {
 
         @SuppressWarnings("unchecked")
         @Override
         public void execute(IotHubStatusCode responseStatus, Object context) {
-            DSIValue resp = responseStatus != null ? DSString.valueOf(responseStatus.toString())
-                    : DSString.NULL;
             if (context != null) {
                 synchronized (context) {
-                    if (context instanceof List<?>) {
-                        ((List<DSIValue>) context).add(resp);
+                    if (context instanceof List<?> && responseStatus != null) {
+                        ((List<IotHubStatusCode>) context).add(responseStatus);
                     }
                     context.notify();
                 }
