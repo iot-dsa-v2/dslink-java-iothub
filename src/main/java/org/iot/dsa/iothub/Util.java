@@ -13,6 +13,7 @@ import org.iot.dsa.node.DSMap.Entry;
 import org.iot.dsa.node.DSMetadata;
 import org.iot.dsa.node.DSString;
 import org.iot.dsa.node.DSValueType;
+import com.microsoft.azure.sdk.iot.device.IotHubStatusCode;
 
 /**
  * Miscellaneous utility methods.
@@ -93,5 +94,40 @@ public class Util {
             value = value.substring(0, idx);
         }
         return value;
+    }
+    
+    public static int iotHubStatusToHttpCode(IotHubStatusCode status) {
+        switch (status) {
+            case BAD_FORMAT:
+                return 400;
+            case ERROR:
+                return 400;
+            case HUB_OR_DEVICE_ID_NOT_FOUND:
+                return 404;
+            case INTERNAL_SERVER_ERROR:
+                return 500;
+            case MESSAGE_CANCELLED_ONCLOSE:
+                return 400;
+            case MESSAGE_EXPIRED:
+                return 400;
+            case OK:
+                return 200;
+            case OK_EMPTY:
+                return 204;
+            case PRECONDITION_FAILED:
+                return 412;
+            case REQUEST_ENTITY_TOO_LARGE:
+                return 413;
+            case SERVER_BUSY:
+                return 503;
+            case THROTTLED:
+                return 429;
+            case TOO_MANY_DEVICES:
+                return 403;
+            case UNAUTHORIZED:
+                return 401;
+            default:
+                return 400;   
+        }
     }
 }
