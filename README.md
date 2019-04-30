@@ -19,20 +19,12 @@ This link was built using the DSLink Java SDK which can be found
 
 This section outlines the hierarchy of nodes defined by this link.
 
-- _MainNode_ - The root node of the link, has an action to add an IoT Hub to the view.
-  - _IotHubNode_ - A node representing a specific IoT Hub.
-    - _Local_ - Serves as the container for Local Device nodes.
-      - _LocalDeviceNode_ - Represents a local device.
-        - _Desired Properties_ - Contains the desired properties of this device's device twin.
-        - _Reported Properties_ - Contains the reported properties of this device's device twin
-        - _Methods_ - Serves as the container for DirectMethod nodes.
-          - _DirectMethodNode_ - Represents a direct method of its local device, which can be invoked by IoT Hub.
-    - _Remote_ - Serves as the container for Remote Device nodes.
-      - _RemoteDeviceNode_ - Represents a specific remote device.
-        - _Desired Properties_ - Contains the desired properties of this device's device twin.
-        - _Reported Properties_ - Contains the reported properties of this device's device twin.
-        - _Tags_ - Contains the tags of this device's device twin.
-
+- _MainNode_ - The root node of the link, has an action to add an IoT Hub Device to the view.
+  - _LocalDeviceNode_ - Represents a local device.
+    - _Desired Properties_ - Contains the desired properties of this device's device twin.
+    - _Reported Properties_ - Contains the reported properties of this device's device twin
+    - _Methods_ - Serves as the container for DirectMethod nodes.
+      - _DirectMethodNode_ - Represents a direct method of its local device, which can be invoked by IoT Hub.
 
 ## Node Guide
 
@@ -45,36 +37,7 @@ descriptions of actions, values and child nodes.
 This is the root node of the link.
 
 **Actions**
-- Add IoT Hub - Connect to an IoT Hub and add a child _IotHubNode_ to represent it. 
-  - `Connection String` - The connection string of the IoT Hub, [found under _Shared Access Policies_ in the Azure Portal.]( https://raw.githubusercontent.com/iot-dsa-v2/dslink-java-v2-iothub/develop/docs/connstring1.png)  
-
-**Child Nodes**
- - any _IotHubNodes_ that have been added.
-
-### IotHubNode
-
-This node represents a specific Azure IoT Hub.
-
-**Actions**
-- Remove - Remove this node.
-- Edit - Edit the connection string and try to connect again.
-- Read Messages - Read device-to-cloud messages from this IoT Hub's EventHub-compatible endpoint.
-  - EventHub Compatible Name - [Found under _Endpoints_ in the Azure Portal.](https://raw.githubusercontent.com/iot-dsa-v2/dslink-java-v2-iothub/develop/docs/eventhubname.png)
-  - EventHub Compatible Endpoint - [Found under _Endpoints_ in the Azure Portal.](https://raw.githubusercontent.com/iot-dsa-v2/dslink-java-v2-iothub/develop/docs/eventhubendpt.png)
-  - Partition ID - The partition of the endpoint to read from.
-  - Start Time - The time from which to start reading messages, defaults to the time of invocation.
-- Get File Upload Notifications - Read any file upload notifications that this IoT Hub receives. These get sent to the IoT Hub whenever one of its devices uploads a file to Azure blob storage.
-
-**Child Nodes**
-- Local - Holds _LocalDeviceNodes_.
-- Remote - Holds _RemoteDeviceNodes_.
-
-### Local
-
-Holds _LocalDeviceNodes_ associated with its parent _IotHubNode_.
-
-**Actions**
-- Create Local Device - Register a new device with the IoT Hub and add a child _LocalDeviceNode_ to represent and simulate it.
+- Add Device by Connection String - Add a child _LocalDeviceNode_ to represent and simulate the IoT Hub device with the given connection string.
 
 **Child Nodes**
  - any _LocalDeviceNodes_ that have been added.
@@ -84,12 +47,10 @@ Holds _LocalDeviceNodes_ associated with its parent _IotHubNode_.
 This node represents a specific local device registered in an Azure IoT Hub.
 
 **Actions**
-- Remove - Remove this node.
 - Refresh - Re-establish the connection between this device and the IoT Hub.
 - Edit - Change the protocol used to communicate with the Iot Hub.
 - Send D2C Message - Send a device-to-cloud message to the IoT Hub this device is registered in.
 - Upload File - Upload a file to the Azure storage container associated with the IoT Hub.
-
 - Reported Properties/Add Reported Property - Creates a reported property value, and sends it to the IoT Hub to update this device's twin in the IoT Hub.
 
 **Values**
@@ -121,34 +82,6 @@ This node represents a direct method of a local device. The IoT Hub that the dev
 **Values**
 - Invocations - A list of attempts by the IoT Hub to invoke this direct method, with time stamps and invocation parameters.
 
-### Remote
-
-Holds _RemoteDeviceNodes_ associated with its parent _IotHubNode_.
-
-**Actions**
-- Add Remote Device - Select one of the devices registered in this IoT Hub and add a child _RemoteDeviceNode_ to represent it.
-
-**Child Nodes**
- - any _RemoteDeviceNodes_ that have been added.
-
-### RemoteDeviceNode
-
-This node represents a specific IoT Hub Device.
-
-**Actions**
-- Remove - Remove this node.
-- Refresh - Re-retrieve the device twin from the IoT Hub and update Tags and Desired/Reported Properties.
-- Invoke Direct Method - Invoke a direct method of this device.
-- Send C2D Message - Send a cloud-to-device message to this device.
-
-- Desired Properties/Add Desired Property - Creates a desired property value, and sends it to the IoT Hub to update this device's twin in the IoT Hub.
-- Tags/Add Tag - Creates a tag value, and sends it to the IoT Hub to update this device's twin in the IoT Hub.
-
-**Child Nodes**
- - Desired Properties - Holds the desired properties of this device's device twin, retrieved from the IoT Hub. Also holds the action for creating additional desired properties.
- - Reported Properties - Holds the reported properties of this device's device twin, retrieved from the IoT Hub.
- - Tags - Holds the tags of this device's device twin, retrieved from the IoT Hub. Also holds the action for creating additional tags.
-
 
 ## Acknowledgements
 
@@ -168,14 +101,6 @@ which is licensed and available under the MIT License. An original copy of the l
 can be found at https://github.com/Azure/azure-iot-sdk-java/blob/master/LICENSE
 
 
-Microsoft Azure Event Hubs Client for Java
-
-This software contains unmodified binary redistributions of 
-[azure-event-hubs-java](https://github.com/Azure/azure-event-hubs-java), 
-which is licensed and available under the MIT License. An original copy of the license agreement 
-can be found at https://github.com/Azure/azure-event-hubs-java/blob/dev/LICENSE
-
-
 Apache Commons Lang 3.0
 
 This software contains unmodified binary redistributions of 
@@ -183,3 +108,26 @@ This software contains unmodified binary redistributions of
 which is licensed and available under the Apache License 2.0. An original copy of the license agreement 
 can be found at https://git-wip-us.apache.org/repos/asf?p=commons-lang.git;a=blob;f=LICENSE.txt;h=d645695673349e3947e8e5ae42332d0ac3164cd7;hb=HEAD
 
+## Changelog
+
+### Version 1.1.0
+
+- Service-Client functionality (previously under the REMOTE node, e.g. sending cloud-to-device messages) has been removed from the DSLink. The DSLink is now exclusively for acting as one or more IoT Hub devices.
+  - What was previously the LOCAL node is now the root node of the DSLink. 
+  - The ability to create new IoT Hub devices has been removed, as this used the service client to register the device identity with IoT Hub. Devices may now only be added by their connection strings (which can be found/generated on the [Azure Portal](https://portal.azure.com).
+  - `nodes.zip` files from the previous version of the DSLink (1.0.13) will no longer work, but can be converted with a python script (see below).
+  - paths to the DSLink (in dataflows, etc.) will need to be updated. E.g. `/downstream/iothub/main/exampleHub/Local/exampleDevice/...` should become `/downstream/iothub/main/exampleDevice/...`
+- The device node now shows more detailed and correct information about the status of the connection to IoT Hub.
+- Upon disconnect, the DSLink will try to re-establish the connection.
+
+#### Python 2 script iothub_convert.py
+
+Use [iothub_convert.py](https://github.com/iot-dsa-v2/dslink-java-v2-iothub/blob/develop/iothub_convert.py) to convert old nodes to the new nodes.
+
+Assuming **oldnodes.zip** is your old nodes file. This will convert **oldnodes.zip** into a nodes file that can be used by the version 1.1.0 of the IoT Hub DSLink, and save the result in **newnodes.zip**.
+
+Usage:
+
+```bash
+python iothub_convert.py oldnodes.zip newnodes.zip
+```

@@ -21,14 +21,27 @@ import com.microsoft.azure.sdk.iot.device.IotHubClientProtocol;
  */
 public class MainNode extends DSMainNode {
 
+    private static final Object requesterLock = new Object();
     private static DSIRequester requester;
 
     public static DSIRequester getRequester() {
-        return requester;
+        synchronized (requesterLock) {
+            while (requester == null) {
+                try {
+                    requesterLock.wait();
+                } catch (InterruptedException e) {
+                    DSException.throwRuntime(e);
+                }
+            }
+            return requester;
+        }
     }
 
     public static void setRequester(DSIRequester requester) {
-        MainNode.requester = requester;
+        synchronized (requesterLock) {
+            MainNode.requester = requester;
+            requesterLock.notifyAll();
+        }
     }
 
     @Override
