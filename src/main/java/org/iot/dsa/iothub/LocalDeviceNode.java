@@ -265,7 +265,8 @@ public class LocalDeviceNode extends DSConnection {
     private void addDirectMethod(DSMap parameters) {
         String methodName = parameters.getString("Method Name");
         String path = parameters.getString("Path");
-        methodsNode.add(methodName, new DirectMethodNode(methodName, path));
+        DSAMethod dsaMethod = DSAMethod.valueOf(parameters.getString("DSA Method"));
+        methodsNode.add(methodName, new DirectMethodNode(methodName, path, dsaMethod));
     }
 
     private void addReportedProp(DSMap parameters) {
@@ -357,6 +358,7 @@ public class LocalDeviceNode extends DSConnection {
         };
         act.addParameter("Method Name", DSValueType.STRING, null);
         act.addDefaultParameter("Path", DSString.EMPTY, null);
+        act.addParameter("DSA Method", DSJavaEnum.valueOf(DSAMethod.INVOKE), "Whether to invoke, set a value, or get a value at the specified path");
         return act;
     }
 
