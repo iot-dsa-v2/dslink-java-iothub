@@ -53,9 +53,10 @@ public class MainNode extends DSMainNode {
                 "https://github.com/iot-dsa-v2/dslink-java-v2-iothub/blob/develop/README.md"))
                 .setTransient(true).setReadOnly(true);
         
-        declareDefault("Add Device by Connection String", makeAddDeviceByConnStrAction());
-        declareDefault("Via Symmetric Key", makeAddDeviceBySymKeyAction()).getMetadata().setActionGroup("Add Device by DPS", null);
-        declareDefault("Via X509", makeAddDeviceByX509Action()).getMetadata().setActionGroup("Add Device by DPS", null);
+        declareDefault("Add Device by Connection String", makeAddDeviceByConnStrAction()).getMetadata().setActionGroup("Add Device", "By Connection String");
+        declareDefault("Add Device by X509", makeAddDeviceByX509Action()).getMetadata().setActionGroup("Add Device", "By X509");
+        declareDefault("Via Symmetric Key", makeProvisionBySymKeyAction()).getMetadata().setActionGroup("Provision Device with DPS", null);
+        declareDefault("Via X509", makeProvisionByX509Action()).getMetadata().setActionGroup("Provision Device with DPS", null);
     }
 
     @Override
@@ -91,37 +92,6 @@ public class MainNode extends DSMainNode {
         add(id, new LocalDeviceNode(id, protocol, connStr));
     }
     
-    private DSAction makeAddDeviceBySymKeyAction() {
-        DSAction act = new DSAction.Parameterless() {
-            @Override
-            public ActionResult invoke(DSInfo target, ActionInvocation invocation) {
-                ((MainNode) target.get()).addDeviceBySymKey(invocation.getParameters());
-                return null;
-            }
-        };
-        act.addParameter("Device ID", DSValueType.STRING, null);
-        act.addParameter("Protocol", DSJavaEnum.valueOf(IotHubClientProtocol.MQTT), null);
-        act.addParameter("Scope ID", DSValueType.STRING, null);
-        act.addDefaultParameter("Provisioning Service Endpoint", DSString.valueOf("global.azure-devices-provisioning.net"), null);
-        act.addParameter("Registration ID", DSValueType.STRING, null);
-        DSList enrollTypes = new DSList().add("Individual Enrollment").add("Group Enrollment");
-        act.addParameter("Key Attestation Type", DSFlexEnum.valueOf("Individual Enrollment", enrollTypes), null);
-        act.addParameter("Symmetric Key", DSValueType.STRING, null);
-        return act;
-    }
-    
-    private void addDeviceBySymKey(DSMap parameters) {
-        String id = parameters.getString("Device ID");
-        String protocolStr = parameters.getString("Protocol");
-        IotHubClientProtocol protocol = IotHubClientProtocol.valueOf(protocolStr);
-        String scopeId = parameters.getString("Scope ID");
-        String endpoint = parameters.getString("Provisioning Service Endpoint");
-        String regId = parameters.getString("Registration ID");
-        boolean groupEnroll = "Group Enrollment".equals(parameters.getString("Key Attestation Type"));
-        String symKey = parameters.getString("Symmetric Key");
-        add(id, new DPSDeviceNodeBySymKey(id, protocol, scopeId, endpoint, regId, groupEnroll, symKey));
-    }
-    
     private DSAction makeAddDeviceByX509Action() {
         DSAction act = new DSAction.Parameterless() {
             @Override
@@ -132,9 +102,9 @@ public class MainNode extends DSMainNode {
         };
         act.addParameter("Device ID", DSValueType.STRING, null);
         act.addParameter("Protocol", DSJavaEnum.valueOf(IotHubClientProtocol.MQTT), null);
-        act.addParameter("Scope ID", DSValueType.STRING, null);
-        act.addDefaultParameter("Provisioning Service Endpoint", DSString.valueOf("global.azure-devices-provisioning.net"), null);
-        act.addParameter("Registration ID", DSValueType.STRING, null);
+        DSList enrollTypes = new DSList().add("Individual Enrollment").add("Group Enrollment");
+        act.addParameter("Key Attestation Type", DSFlexEnum.valueOf("Individual Enrollment", enrollTypes), null);
+        act.addParameter("IoT Hub URI", DSValueType.STRING, null);
         act.addParameter("Certificate", DSValueType.STRING, "Either a path to the certificate PEM file, or the PEM text");
         return act;
     }
@@ -143,10 +113,82 @@ public class MainNode extends DSMainNode {
         String id = parameters.getString("Device ID");
         String protocolStr = parameters.getString("Protocol");
         IotHubClientProtocol protocol = IotHubClientProtocol.valueOf(protocolStr);
+        String uri = parameters.getString("IoT Hub URI");
+        boolean groupEnroll = "Group Enrollment".equals(parameters.getString("Key Attestation Type"));
+        String cert = parameters.getString("Certificate");
+        add(id, new LocalX509DeviceNode(id, protocol, uri, groupEnroll, cert));
+    }
+    
+    private DSAction makeProvisionBySymKeyAction() {
+        DSAction act = new DSAction.Parameterless() {
+            @Override
+            public ActionResult invoke(DSInfo target, ActionInvocation invocation) {
+                ((MainNode) target.get()).provisionBySymKey(invocation.getParameters());
+                return null;
+            }
+        };
+        act.addParameter("Protocol", DSJavaEnum.valueOf(IotHubClientProtocol.MQTT), null);
+        act.addParameter("Scope ID", DSValueType.STRING, null);
+        act.addDefaultParameter("Provisioning Service Endpoint", DSString.valueOf("global.azure-devices-provisioning.net"), null);
+        act.addParameter("Registration ID", DSValueType.STRING, null);
+        DSList enrollTypes = new DSList().add("Individual Enrollment").add("Group Enrollment");
+        act.addParameter("Key Attestation Type", DSFlexEnum.valueOf("Individual Enrollment", enrollTypes), null);
+        act.addParameter("Symmetric Key", DSValueType.STRING, null);
+        return act;
+    }
+    
+    private void provisionBySymKey(DSMap parameters) {
+        String protocolStr = parameters.getString("Protocol");
+        IotHubClientProtocol protocol = IotHubClientProtocol.valueOf(protocolStr);
         String scopeId = parameters.getString("Scope ID");
         String endpoint = parameters.getString("Provisioning Service Endpoint");
         String regId = parameters.getString("Registration ID");
-        String cert = parameters.getString("Certificate");
-        add(id, new DPSDeviceNodeByX509(id, protocol, scopeId, endpoint, regId, cert));
+        boolean groupEnroll = "Group Enrollment".equals(parameters.getString("Key Attestation Type"));
+        String symKey = parameters.getString("Symmetric Key");
+        
+        // TODO do DPS using above parameters
+        
+        String deviceId; //TODO get from DPS
+        String connStr; //TODO get from
+        
+        add(deviceId, new LocalDeviceNode(deviceId, protocol, connStr));
     }
+    
+    private DSAction makeProvisionByX509Action() {
+        DSAction act = new DSAction.Parameterless() {
+            @Override
+            public ActionResult invoke(DSInfo target, ActionInvocation invocation) {
+                ((MainNode) target.get()).provisionByX509(invocation.getParameters());
+                return null;
+            }
+        };
+        act.addParameter("Device ID", DSValueType.STRING, null);
+        act.addParameter("Protocol", DSJavaEnum.valueOf(IotHubClientProtocol.MQTT), null);
+        act.addParameter("Scope ID", DSValueType.STRING, null);
+        act.addDefaultParameter("Provisioning Service Endpoint", DSString.valueOf("global.azure-devices-provisioning.net"), null);
+        act.addParameter("Registration ID", DSValueType.STRING, null);
+        DSList enrollTypes = new DSList().add("Individual Enrollment").add("Group Enrollment");
+        act.addParameter("Key Attestation Type", DSFlexEnum.valueOf("Individual Enrollment", enrollTypes), null);
+        act.addParameter("Certificate", DSValueType.STRING, "Either a path to the certificate PEM file, or the PEM text");
+        return act;
+    }
+
+    protected void provisionByX509(DSMap parameters) {
+        String deviceId = parameters.getString("Device ID");
+        String protocolStr = parameters.getString("Protocol");
+        IotHubClientProtocol protocol = IotHubClientProtocol.valueOf(protocolStr);
+        String scopeId = parameters.getString("Scope ID");
+        String endpoint = parameters.getString("Provisioning Service Endpoint");
+        String regId = parameters.getString("Registration ID");
+        boolean groupEnroll = "Group Enrollment".equals(parameters.getString("Key Attestation Type"));
+        String cert = parameters.getString("Certificate");
+        
+        // TODO do DPS using above parameters
+        
+        String iothubURI; //TODO get from DPS?
+        
+        add(deviceId,  new LocalX509DeviceNode(deviceId, protocol, iothubURI, groupEnroll, cert));
+    }
+    
+    
 }
