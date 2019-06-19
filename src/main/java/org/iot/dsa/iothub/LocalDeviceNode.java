@@ -24,7 +24,6 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import org.iot.dsa.DSRuntime;
 import org.iot.dsa.conn.DSConnection;
 import org.iot.dsa.dslink.DSRequestException;
 import org.iot.dsa.dslink.restadapter.Constants;
@@ -166,7 +165,7 @@ public class LocalDeviceNode extends DSConnection {
             
             if (!awaitResponse) {
                 client.sendEventAsync(msg, null, null);
-                return new SimpleResponseWrapper(202, "Message sent, not waiting for response", DSDateTime.currentTime());
+                return new SimpleResponseWrapper(202, "Message sent, not waiting for response", DSDateTime.now());
             }
             client.sendEventAsync(msg, new ResponseCallback(), lockobj);
         }
@@ -176,10 +175,10 @@ public class LocalDeviceNode extends DSConnection {
             } catch (InterruptedException e) {
             }
             if (lockobj.isEmpty()) {
-                return new SimpleResponseWrapper(408, "No response from Iot Hub", DSDateTime.currentTime());
+                return new SimpleResponseWrapper(408, "No response from Iot Hub", DSDateTime.now());
             }
             IotHubStatusCode respStatus = lockobj.get(0);
-            return new SimpleResponseWrapper(Util.iotHubStatusToHttpCode(respStatus), respStatus.toString(), DSDateTime.currentTime());
+            return new SimpleResponseWrapper(Util.iotHubStatusToHttpCode(respStatus), respStatus.toString(), DSDateTime.now());
         }
     }
 
@@ -231,6 +230,7 @@ public class LocalDeviceNode extends DSConnection {
 
     @Override
     protected void onStable() {
+        super.onStable();
         status = add("STATUS", DSString.valueOf("Connecting"));
         status.setTransient(true);
         status.setReadOnly(true);
@@ -245,12 +245,11 @@ public class LocalDeviceNode extends DSConnection {
         desiredNode = getNode("Desired Properties");
         reportedNode = (ReportedPropsNode) getNode("Reported Properties");
         rulesNode = getNode("D2C Rules");
-
-        DSRuntime.run(this);
     }
 
     @Override
     protected void onStarted() {
+        super.onStarted();
         if (protocol == null) {
             DSIObject p = get("Protocol");
             protocol = p instanceof DSString ? IotHubClientProtocol.valueOf(p.toString())
