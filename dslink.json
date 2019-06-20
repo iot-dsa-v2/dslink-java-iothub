@@ -12,6 +12,10 @@
       "desc": "all, trace, debug, info, warn, error, none",
       "type": "enum",
       "value": "info"
+    },
+    "broker": {
+      "type": "url",
+      "value": null
     }
   }
 }
