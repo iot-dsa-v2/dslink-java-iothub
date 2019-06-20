@@ -63,6 +63,7 @@ public class D2CRuleNode extends AbstractRuleNode {
     
     @Override
     protected void onRemoved() {
+        super.onRemoved();
         if (rule != null) {
             rule.close();
         }
@@ -120,7 +121,7 @@ public class D2CRuleNode extends AbstractRuleNode {
         if (resp == null) {
             put(lastRespCode, DSInt.valueOf(-1));
             put(lastRespData, DSString.valueOf("Failed to send update"));
-            put(lastRespTs, DSString.valueOf(DSDateTime.currentTime()));
+            put(lastRespTs, DSString.valueOf(DSDateTime.now()));
         } else {
             int status = resp.getCode();
             String data = resp.getData();
