@@ -61,6 +61,7 @@ public class MainNode extends DSMainNode {
 
     @Override
     protected void onStarted() {
+        super.onStarted();
         getLink().getConnection().subscribe(((event, node, child, data) -> {
             if (event.equals(DSLinkConnection.CONNECTED_EVENT)) {
                 MainNode.setRequester(getLink().getConnection().getRequester());

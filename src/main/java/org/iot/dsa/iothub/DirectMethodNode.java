@@ -136,6 +136,7 @@ public class DirectMethodNode extends DSNode {
 
     @Override
     protected void onStable() {
+        super.onStable();
         if (methodName == null) {
             methodName = getName();
         }

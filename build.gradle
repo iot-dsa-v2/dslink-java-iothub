@@ -23,11 +23,9 @@ repositories {
 }
 
 dependencies {
-    //implementation 'org.iot-dsa:dslink-v2-websocket:+' //for a locally installed sdk
-    implementation 'com.github.iot-dsa-v2.sdk-dslink-java-v2:dslink-v2-websocket:+'
-    implementation 'com.github.iot-dsa-v2:dslink-java-v2-restadapter:v1.1.4'
+    implementation 'com.github.iot-dsa-v2:dslink-java-v2-restadapter:v1.1.7'
     implementation 'org.apache.commons:commons-lang3:3.6'
-	implementation 'com.microsoft.azure.sdk.iot:iot-device-client:1.14.1'
+	implementation 'com.microsoft.azure.sdk.iot:iot-device-client:1.17.3'
 	
     testImplementation 'junit:junit:+'
     testImplementation 'org.mockito:mockito-all:1.9.5'

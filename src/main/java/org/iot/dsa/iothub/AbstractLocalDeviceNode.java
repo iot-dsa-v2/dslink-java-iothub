@@ -8,7 +8,6 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import org.iot.dsa.DSRuntime;
 import org.iot.dsa.conn.DSConnection;
 import org.iot.dsa.dslink.DSRequestException;
 import org.iot.dsa.dslink.restadapter.Constants;
@@ -129,8 +128,6 @@ public abstract class AbstractLocalDeviceNode extends DSConnection {
         desiredNode = getNode("Desired Properties");
         reportedNode = (ReportedPropsNode) getNode("Reported Properties");
         rulesNode = getNode("D2C Rules");
-
-        DSRuntime.run(this);
     }
     
     private void init() {
@@ -490,7 +487,7 @@ public abstract class AbstractLocalDeviceNode extends DSConnection {
             
             if (!awaitResponse) {
                 client.sendEventAsync(msg, null, null);
-                return new SimpleResponseWrapper(202, "Message sent, not waiting for response", DSDateTime.currentTime());
+                return new SimpleResponseWrapper(202, "Message sent, not waiting for response", DSDateTime.now());
             }
             client.sendEventAsync(msg, new ResponseCallback(), lockobj);
         }
@@ -500,10 +497,10 @@ public abstract class AbstractLocalDeviceNode extends DSConnection {
             } catch (InterruptedException e) {
             }
             if (lockobj.isEmpty()) {
-                return new SimpleResponseWrapper(408, "No response from Iot Hub", DSDateTime.currentTime());
+                return new SimpleResponseWrapper(408, "No response from Iot Hub", DSDateTime.now());
             }
             IotHubStatusCode respStatus = lockobj.get(0);
-            return new SimpleResponseWrapper(Util.iotHubStatusToHttpCode(respStatus), respStatus.toString(), DSDateTime.currentTime());
+            return new SimpleResponseWrapper(Util.iotHubStatusToHttpCode(respStatus), respStatus.toString(), DSDateTime.now());
         }
     }
     
