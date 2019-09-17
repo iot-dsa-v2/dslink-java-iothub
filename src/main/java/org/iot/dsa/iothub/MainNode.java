@@ -1,5 +1,7 @@
 package org.iot.dsa.iothub;
 
+import com.microsoft.azure.sdk.iot.device.IotHubClientProtocol;
+import org.iot.dsa.dslink.ActionResults;
 import org.iot.dsa.dslink.DSIRequester;
 import org.iot.dsa.dslink.DSLinkConnection;
 import org.iot.dsa.dslink.DSMainNode;
@@ -7,12 +9,9 @@ import org.iot.dsa.node.DSInfo;
 import org.iot.dsa.node.DSJavaEnum;
 import org.iot.dsa.node.DSMap;
 import org.iot.dsa.node.DSString;
-import org.iot.dsa.node.DSValueType;
-import org.iot.dsa.node.action.ActionInvocation;
-import org.iot.dsa.node.action.ActionResult;
 import org.iot.dsa.node.action.DSAction;
+import org.iot.dsa.node.action.DSIActionRequest;
 import org.iot.dsa.util.DSException;
-import com.microsoft.azure.sdk.iot.device.IotHubClientProtocol;
 
 /**
  * This is the root node of the link.
@@ -50,7 +49,7 @@ public class MainNode extends DSMainNode {
         declareDefault("Docs", DSString.valueOf(
                 "https://github.com/iot-dsa-v2/dslink-java-v2-iothub/blob/develop/README.md"))
                 .setTransient(true).setReadOnly(true);
-        
+
         declareDefault("Add Device by Connection String", makeAddDeviceByConnStrAction());
         //declareDefault("Add Device by DPS", makeAddDeviceByDPSAction());
     }
@@ -64,28 +63,29 @@ public class MainNode extends DSMainNode {
             }
         }));
     }
-    
-    private static DSAction makeAddDeviceByConnStrAction() {
-        DSAction act = new DSAction.Parameterless() {
-            @Override
-            public ActionResult invoke(DSInfo target, ActionInvocation invocation) {
-                ((MainNode) target.get()).addDeviceByConnStr(invocation.getParameters());
-                return null;
-            }
-        };
-        act.addParameter("Connection String", DSValueType.STRING, null);
-        act.addParameter("Protocol", DSJavaEnum.valueOf(IotHubClientProtocol.MQTT), null);
-        return act;
-    }
-    
+
     private void addDeviceByConnStr(DSMap parameters) {
-        String connStr = parameters.getString("Connection String"); 
+        String connStr = parameters.getString("Connection String");
         String id = Util.getFromConnString(connStr, "DeviceId");
         if (id == null) {
-            DSException.throwRuntime(new IllegalArgumentException("Device Connection String missing Device ID"));
+            DSException.throwRuntime(
+                    new IllegalArgumentException("Device Connection String missing Device ID"));
         }
         String protocolStr = parameters.getString("Protocol");
         IotHubClientProtocol protocol = IotHubClientProtocol.valueOf(protocolStr);
         add(id, new LocalDeviceNode(id, protocol, connStr));
+    }
+
+    private static DSAction makeAddDeviceByConnStrAction() {
+        DSAction act = new DSAction() {
+            @Override
+            public ActionResults invoke(DSIActionRequest req) {
+                ((MainNode) req.getTarget()).addDeviceByConnStr(req.getParameters());
+                return null;
+            }
+        };
+        act.addParameter("Connection String", DSString.NULL, null);
+        act.addParameter("Protocol", DSJavaEnum.valueOf(IotHubClientProtocol.MQTT), null);
+        return act;
     }
 }

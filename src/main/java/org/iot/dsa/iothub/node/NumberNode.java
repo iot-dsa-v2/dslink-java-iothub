@@ -1,5 +1,6 @@
 package org.iot.dsa.iothub.node;
 
+import org.iot.dsa.node.DSLong;
 import org.iot.dsa.node.DSValueType;
 
 /**
@@ -8,10 +9,5 @@ import org.iot.dsa.node.DSValueType;
  * @author Daniel Shapiro
  */
 public abstract class NumberNode extends ValueNode {
-
-    @Override
-    public DSValueType getValueType() {
-        return DSValueType.NUMBER;
-    }
 
 }

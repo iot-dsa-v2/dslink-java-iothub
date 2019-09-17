@@ -12,17 +12,12 @@ import org.iot.dsa.node.DSValueType;
 public class BoolNode extends ValueNode {
 
     @Override
-    public DSValueType getValueType() {
-        return DSValueType.BOOL;
+    public Object getObject() {
+        return toElement().toBoolean();
     }
 
     public void updateValue(DSBool value) {
         super.updateValue(value);
-    }
-
-    @Override
-    public Object getObject() {
-        return toElement().toBoolean();
     }
 
     @Override

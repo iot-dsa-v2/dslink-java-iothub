@@ -10,13 +10,13 @@ import org.iot.dsa.node.DSIValue;
  */
 public class DoubleNode extends NumberNode {
 
-    public void updateValue(DSDouble value) {
-        super.updateValue(value);
-    }
-
     @Override
     public Object getObject() {
         return toElement().toDouble();
+    }
+
+    public void updateValue(DSDouble value) {
+        super.updateValue(value);
     }
 
     @Override

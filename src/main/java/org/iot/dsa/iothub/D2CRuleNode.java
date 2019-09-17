@@ -1,5 +1,6 @@
 package org.iot.dsa.iothub;
 
+import org.iot.dsa.dslink.ActionResults;
 import org.iot.dsa.dslink.DSIRequester;
 import org.iot.dsa.dslink.restadapter.AbstractRuleNode;
 import org.iot.dsa.dslink.restadapter.Constants;
@@ -12,8 +13,7 @@ import org.iot.dsa.node.DSInt;
 import org.iot.dsa.node.DSMap;
 import org.iot.dsa.node.DSString;
 import org.iot.dsa.node.DSMap.Entry;
-import org.iot.dsa.node.action.ActionInvocation;
-import org.iot.dsa.node.action.ActionResult;
+import org.iot.dsa.node.action.DSIActionRequest;
 import org.iot.dsa.node.action.DSAction;
 import org.iot.dsa.time.DSDateTime;
 
@@ -70,10 +70,10 @@ public class D2CRuleNode extends AbstractRuleNode {
     }
     
     private DSIObject makeEditAction() {
-        DSAction act = new DSAction.Parameterless() {
+        DSAction act = new DSAction() {
             @Override
-            public ActionResult invoke(DSInfo target, ActionInvocation invocation) {
-                ((D2CRuleNode) target.get()).edit(invocation.getParameters());
+            public ActionResults invoke(DSIActionRequest req) {
+                ((D2CRuleNode) req.getTarget()).edit(req.getParameters());
                 return null;
             }
         };
