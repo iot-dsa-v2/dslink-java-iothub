@@ -2,7 +2,6 @@ package org.iot.dsa.iothub.node;
 
 import org.iot.dsa.node.DSIValue;
 import org.iot.dsa.node.DSString;
-import org.iot.dsa.node.DSValueType;
 
 /**
  * A node that is also a String value.
@@ -12,17 +11,12 @@ import org.iot.dsa.node.DSValueType;
 public class StringNode extends ValueNode {
 
     @Override
-    public DSValueType getValueType() {
-        return DSValueType.STRING;
+    public Object getObject() {
+        return toElement().toString();
     }
 
     public void updateValue(DSString value) {
         super.updateValue(value);
-    }
-
-    @Override
-    public Object getObject() {
-        return toElement().toString();
     }
 
     @Override

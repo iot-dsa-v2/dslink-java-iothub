@@ -12,17 +12,12 @@ import org.iot.dsa.node.DSValueType;
 public class ListNode extends ValueNode {
 
     @Override
-    public DSValueType getValueType() {
-        return DSValueType.LIST;
+    public Object getObject() {
+        return toElement().toList();
     }
 
     public void updateValue(DSList value) {
         super.updateValue(value);
-    }
-
-    @Override
-    public Object getObject() {
-        return toElement().toList();
     }
 
     @Override

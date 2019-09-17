@@ -18,13 +18,17 @@ public abstract class ValueNode extends DSNode implements DSIValue, TwinProperty
 
     private DSInfo valueInfo = getInfo("Value");
 
+    public abstract Object getObject();
+
     @Override
-    protected void declareDefaults() {
-        super.declareDefaults();
-        declareDefault("Value", getNullValue()).setReadOnly(true).setPrivate(true);
+    public DSValueType getValueType() {
+        return toElement().getValueType();
     }
 
-    protected abstract DSIValue getNullValue();
+    @Override
+    public boolean isNull() {
+        return toElement().isNull();
+    }
 
     /**
      * This fires the NODE_CHANGED topic when the value child changes.  Overrides should call
@@ -37,15 +41,17 @@ public abstract class ValueNode extends DSNode implements DSIValue, TwinProperty
         }
     }
 
-    @Override
-    public DSValueType getValueType() {
-        return valueInfo.getValue().getValueType();
+    public void onSet(DSIValue value) {
+        updateValue(value);
     }
-
 
     @Override
     public DSElement toElement() {
         return valueInfo.getValue().toElement();
+    }
+
+    public void updateValue(DSIValue value) {
+        put(valueInfo, value);
     }
 
     @Override
@@ -53,14 +59,13 @@ public abstract class ValueNode extends DSNode implements DSIValue, TwinProperty
         return valueInfo.getValue().valueOf(element);
     }
 
-
-    public void updateValue(DSIValue value) {
-        put(valueInfo, value);
+    @Override
+    protected void declareDefaults() {
+        super.declareDefaults();
+        declareDefault("Value", getNullValue()).setReadOnly(true).setPrivate(true);
     }
 
-    public void onSet(DSIValue value) {
-        updateValue(value);
-    }
+    protected abstract DSIValue getNullValue();
 
     @Override
     protected void onRemoved() {
@@ -70,7 +75,5 @@ public abstract class ValueNode extends DSNode implements DSIValue, TwinProperty
             ((TwinPropertyContainer) parent).onDelete(getInfo());
         }
     }
-
-    public abstract Object getObject();
 
 }

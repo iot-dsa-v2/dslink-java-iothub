@@ -5,7 +5,6 @@ import com.microsoft.azure.sdk.iot.device.DeviceTwin.Device;
 import com.microsoft.azure.sdk.iot.device.DeviceTwin.DeviceMethodCallback;
 import com.microsoft.azure.sdk.iot.device.DeviceTwin.DeviceMethodData;
 import com.microsoft.azure.sdk.iot.device.DeviceTwin.Property;
-import com.microsoft.azure.sdk.iot.device.transport.IotHubConnectionStatus;
 import com.microsoft.azure.sdk.iot.device.IotHubClientProtocol;
 import com.microsoft.azure.sdk.iot.device.IotHubConnectionStatusChangeCallback;
 import com.microsoft.azure.sdk.iot.device.IotHubConnectionStatusChangeReason;
@@ -16,6 +15,7 @@ import com.microsoft.azure.sdk.iot.device.Message;
 import com.microsoft.azure.sdk.iot.device.MessageCallback;
 import com.microsoft.azure.sdk.iot.device.MessageProperty;
 import com.microsoft.azure.sdk.iot.device.MessageType;
+import com.microsoft.azure.sdk.iot.device.transport.IotHubConnectionStatus;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -25,6 +25,8 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import org.iot.dsa.conn.DSConnection;
+import org.iot.dsa.dslink.Action.ResultsType;
+import org.iot.dsa.dslink.ActionResults;
 import org.iot.dsa.dslink.DSRequestException;
 import org.iot.dsa.dslink.restadapter.Constants;
 import org.iot.dsa.dslink.restadapter.ResponseWrapper;
@@ -33,24 +35,22 @@ import org.iot.dsa.iothub.node.DoubleNode;
 import org.iot.dsa.iothub.node.ListNode;
 import org.iot.dsa.iothub.node.StringNode;
 import org.iot.dsa.node.DSBool;
+import org.iot.dsa.node.DSElement;
 import org.iot.dsa.node.DSFlexEnum;
 import org.iot.dsa.node.DSIObject;
 import org.iot.dsa.node.DSIValue;
 import org.iot.dsa.node.DSInfo;
 import org.iot.dsa.node.DSJavaEnum;
 import org.iot.dsa.node.DSList;
+import org.iot.dsa.node.DSLong;
 import org.iot.dsa.node.DSMap;
 import org.iot.dsa.node.DSMap.Entry;
 import org.iot.dsa.node.DSNode;
 import org.iot.dsa.node.DSString;
-import org.iot.dsa.node.DSValueType;
-import org.iot.dsa.node.action.ActionInvocation;
-import org.iot.dsa.node.action.ActionResult;
-import org.iot.dsa.node.action.ActionSpec;
-import org.iot.dsa.node.action.ActionSpec.ResultType;
-import org.iot.dsa.time.DSDateTime;
-import org.iot.dsa.node.action.ActionValues;
 import org.iot.dsa.node.action.DSAction;
+import org.iot.dsa.node.action.DSIAction;
+import org.iot.dsa.node.action.DSIActionRequest;
+import org.iot.dsa.time.DSDateTime;
 
 /**
  * An instance of this node represents a specific local device registered in an Azure IoT Hub.
@@ -67,9 +67,9 @@ public class LocalDeviceNode extends DSConnection {
     private DSNode desiredNode;
     private String deviceId;
     private DSNode methodsNode;
-    private DSNode rulesNode;
     private IotHubClientProtocol protocol;
     private ReportedPropsNode reportedNode;
+    private DSNode rulesNode;
     private DSInfo status;
     private Device twin;
 
@@ -80,23 +80,43 @@ public class LocalDeviceNode extends DSConnection {
         this.deviceId = deviceId;
         this.protocol = protocol;
     }
-    
-    public LocalDeviceNode(String deviceId, IotHubClientProtocol protocol, String connectionString) {
+
+    public LocalDeviceNode(String deviceId, IotHubClientProtocol protocol,
+                           String connectionString) {
         this(deviceId, protocol);
         this.connectionString = connectionString;
     }
-    
-    @Override
-    protected void onRemoved() {
-        super.onRemoved();
-        synchronized(clientLock) {
-            if (client != null) {
-                try {
-                    client.closeNow();
-                } catch (IOException e) {
-                    warn(e);
-                }
+
+    public ResponseWrapper doSendD2C(DSMap properties, String messageBody, boolean awaitResponse) {
+        final List<IotHubStatusCode> lockobj = new ArrayList<IotHubStatusCode>();
+        synchronized (clientLock) {
+            if (client == null) {
+                throw new DSRequestException("Client not initialized");
             }
+            Message msg = new Message(messageBody);
+            for (Entry entry : properties) {
+                msg.setProperty(entry.getKey(), entry.getValue().toString());
+            }
+            msg.setMessageId(java.util.UUID.randomUUID().toString());
+
+            if (!awaitResponse) {
+                client.sendEventAsync(msg, null, null);
+                return new SimpleResponseWrapper(202, "Message sent, not waiting for response",
+                                                 DSDateTime.now());
+            }
+            client.sendEventAsync(msg, new ResponseCallback(), lockobj);
+        }
+        synchronized (lockobj) {
+            try {
+                lockobj.wait();
+            } catch (InterruptedException e) {
+            }
+            if (lockobj.isEmpty()) {
+                return new SimpleResponseWrapper(408, "No response from Iot Hub", DSDateTime.now());
+            }
+            IotHubStatusCode respStatus = lockobj.get(0);
+            return new SimpleResponseWrapper(Util.iotHubStatusToHttpCode(respStatus),
+                                             respStatus.toString(), DSDateTime.now());
         }
     }
 
@@ -116,70 +136,13 @@ public class LocalDeviceNode extends DSConnection {
         fire(VALUE_CHANGED_EVENT, c2d, null);
     }
 
-    public ActionResult sendD2CMessage(final DSAction action, DSMap parameters) {
+    public ActionResults sendD2CMessage(final DSIActionRequest req) {
+        DSMap parameters = req.getParameters();
         String msgStr = parameters.getString("Message");
         DSMap properties = parameters.getMap("Properties");
         boolean awaitResponse = parameters.getBoolean("Await Response");
-        
         final ResponseWrapper resp = doSendD2C(properties, msgStr, awaitResponse);
-        
-        return new ActionValues() {
-
-            @Override
-            public ActionSpec getAction() {
-                return action;
-            }
-
-            @Override
-            public int getColumnCount() {
-                return 1;
-            }
-
-            @Override
-            public void getMetadata(int col, DSMap bucket) {
-                action.getColumnMetadata(col, bucket);
-            }
-
-            @Override
-            public DSIValue getValue(int col) {
-                return DSString.valueOf(resp.getData());
-            }
-
-            @Override
-            public void onClose() {
-            }
-        };
-    }
-    
-    public ResponseWrapper doSendD2C(DSMap properties, String messageBody, boolean awaitResponse) {
-        final List<IotHubStatusCode> lockobj = new ArrayList<IotHubStatusCode>();
-        synchronized(clientLock) {
-            if (client == null) {
-                throw new DSRequestException("Client not initialized");
-            }
-            Message msg = new Message(messageBody);
-            for (Entry entry : properties) {
-                msg.setProperty(entry.getKey(), entry.getValue().toString());
-            }
-            msg.setMessageId(java.util.UUID.randomUUID().toString());
-            
-            if (!awaitResponse) {
-                client.sendEventAsync(msg, null, null);
-                return new SimpleResponseWrapper(202, "Message sent, not waiting for response", DSDateTime.now());
-            }
-            client.sendEventAsync(msg, new ResponseCallback(), lockobj);
-        }
-        synchronized (lockobj) {
-            try {
-                lockobj.wait();
-            } catch (InterruptedException e) {
-            }
-            if (lockobj.isEmpty()) {
-                return new SimpleResponseWrapper(408, "No response from Iot Hub", DSDateTime.now());
-            }
-            IotHubStatusCode respStatus = lockobj.get(0);
-            return new SimpleResponseWrapper(Util.iotHubStatusToHttpCode(respStatus), respStatus.toString(), DSDateTime.now());
-        }
+        return DSIAction.toResults(req, DSString.valueOf(resp.getData()));
     }
 
     public void setupClient() throws IOException, URISyntaxException {
@@ -209,6 +172,11 @@ public class LocalDeviceNode extends DSConnection {
     }
 
     @Override
+    protected void checkConfig() {
+        // TODO Auto-generated method stub
+    }
+
+    @Override
     protected void declareDefaults() {
         super.declareDefaults();
         declareDefault("Methods", new MethodsNode());
@@ -221,11 +189,35 @@ public class LocalDeviceNode extends DSConnection {
         declareDefault("Refresh", makeRefreshAction());
     }
 
+    @Override
+    protected void doConnect() {
+        init();
+    }
+
+    @Override
+    protected void doDisconnect() {
+        // TODO Auto-generated method stub
+    }
+
     protected void edit(DSMap parameters) {
         String protocolStr = parameters.getString("Protocol");
         protocol = IotHubClientProtocol.valueOf(protocolStr);
         connectionString = parameters.getString("Connection String");
         init();
+    }
+
+    @Override
+    protected void onRemoved() {
+        super.onRemoved();
+        synchronized (clientLock) {
+            if (client != null) {
+                try {
+                    client.closeNow();
+                } catch (IOException e) {
+                    warn(e);
+                }
+            }
+        }
     }
 
     @Override
@@ -299,7 +291,7 @@ public class LocalDeviceNode extends DSConnection {
             }
         }
     }
-    
+
     private void addRule(DSMap parameters) {
         String name = parameters.getString(Constants.NAME);
         rulesNode.add(name, new D2CRuleNode(parameters));
@@ -307,7 +299,7 @@ public class LocalDeviceNode extends DSConnection {
 
     private void init() {
         put("Protocol", DSString.valueOf(protocol.toString())).setReadOnly(true);
-        synchronized(clientLock) {
+        synchronized (clientLock) {
             if (client != null) {
                 try {
                     client.closeNow();
@@ -320,7 +312,7 @@ public class LocalDeviceNode extends DSConnection {
         if (connectionString != null) {
             put("Connection String", DSString.valueOf(connectionString)).setReadOnly(true);
         }
-        
+
         try {
             setupClient();
 
@@ -348,70 +340,74 @@ public class LocalDeviceNode extends DSConnection {
     }
 
     private static DSAction makeAddMethodAction() {
-        DSAction act = new DSAction.Parameterless() {
+        DSAction act = new DSAction() {
             @Override
-            public ActionResult invoke(DSInfo target, ActionInvocation invocation) {
-                ((LocalDeviceNode) target.getParent()).addDirectMethod(invocation.getParameters());
+            public ActionResults invoke(DSIActionRequest req) {
+                ((LocalDeviceNode) req.getTarget()).addDirectMethod(req.getParameters());
                 return null;
             }
         };
-        act.addParameter("Method Name", DSValueType.STRING, null);
+        act.addParameter("Method Name", DSString.NULL, null);
         act.addDefaultParameter("Path", DSString.EMPTY, null);
-        act.addParameter("DSA Method", DSJavaEnum.valueOf(DSAMethod.INVOKE), "Whether to invoke, set a value, or get a value at the specified path");
+        act.addParameter("DSA Method", DSJavaEnum.valueOf(DSAMethod.INVOKE),
+                         "Whether to invoke, set a value, or get a value at the specified path");
         return act;
     }
 
     private static DSAction makeAddReportedPropAction() {
-        DSAction act = new DSAction.Parameterless() {
+        DSAction act = new DSAction() {
             @Override
-            public ActionResult invoke(DSInfo target, ActionInvocation invocation) {
-                ((LocalDeviceNode) target.getParent()).addReportedProp(invocation.getParameters());
+            public ActionResults invoke(DSIActionRequest req) {
+                ((LocalDeviceNode) req.getTarget()).addReportedProp(req.getParameters());
                 return null;
             }
         };
-        act.addParameter("Name", DSValueType.STRING, null);
+        act.addParameter("Name", DSString.NULL, null);
         act.addParameter("Value Type", DSFlexEnum.valueOf("String", Util.getSimpleValueTypes()),
                          null);
         return act;
     }
-    
+
     private static DSAction makeAddRuleAction() {
-        DSAction act = new DSAction.Parameterless() {
+        DSAction act = new DSAction() {
             @Override
-            public ActionResult invoke(DSInfo target, ActionInvocation request) {
-                ((LocalDeviceNode) target.getParent()).addRule(request.getParameters());
+            public ActionResults invoke(DSIActionRequest request) {
+                ((LocalDeviceNode) request.getTarget()).addRule(request.getParameters());
                 return null;
             }
         };
-        act.addParameter(Constants.NAME, DSValueType.STRING, null);
-        act.addParameter(Constants.SUB_PATH, DSValueType.STRING, null);
+        act.addParameter(Constants.NAME, DSString.NULL, null);
+        act.addParameter(Constants.SUB_PATH, DSString.NULL, null);
         act.addDefaultParameter("Properties", new DSMap(), null);
-        act.addParameter(Constants.REQUEST_BODY, DSValueType.STRING, null);
-        act.addParameter(Constants.MIN_REFRESH_RATE, DSValueType.NUMBER, "Optional, ensures at least this many seconds between updates");
-        act.addParameter(Constants.MAX_REFRESH_RATE, DSValueType.NUMBER, "Optional, ensures an update gets sent every this many seconds");
+        act.addParameter(Constants.REQUEST_BODY, DSString.NULL, null);
+        act.addParameter(Constants.MIN_REFRESH_RATE, DSLong.NULL,
+                         "Optional, ensures at least this many seconds between updates");
+        act.addParameter(Constants.MAX_REFRESH_RATE, DSLong.NULL,
+                         "Optional, ensures an update gets sent every this many seconds");
         return act;
     }
 
     private DSAction makeEditAction() {
-        DSAction act = new DSAction.Parameterless() {
+        DSAction act = new DSAction() {
             @Override
-            public ActionResult invoke(DSInfo target, ActionInvocation invocation) {
-                ((LocalDeviceNode) target.get()).edit(invocation.getParameters());
+            public ActionResults invoke(DSIActionRequest req) {
+                ((LocalDeviceNode) req.getTarget()).edit(req.getParameters());
                 return null;
             }
         };
         act.addDefaultParameter("Protocol", DSJavaEnum.valueOf(protocol), null);
         act.addDefaultParameter("Connection String",
-                connectionString != null ? DSString.valueOf(connectionString) : DSString.EMPTY,
-                "Will be automatically constructed if left empty");
+                                connectionString != null ? DSString.valueOf(connectionString)
+                                        : DSString.EMPTY,
+                                "Will be automatically constructed if left empty");
         return act;
     }
 
     private DSAction makeRefreshAction() {
-        DSAction act = new DSAction.Parameterless() {
+        DSAction act = new DSAction() {
             @Override
-            public ActionResult invoke(DSInfo target, ActionInvocation invocation) {
-                ((LocalDeviceNode) target.get()).init();
+            public ActionResults invoke(DSIActionRequest req) {
+                ((LocalDeviceNode) req.getTarget()).init();
                 return null;
             }
         };
@@ -419,33 +415,31 @@ public class LocalDeviceNode extends DSConnection {
     }
 
     private DSAction makeSendMessageAction() {
-        DSAction act = new DSAction.Parameterless() {
+        DSAction act = new DSAction() {
             @Override
-            public ActionResult invoke(DSInfo target, ActionInvocation invocation) {
-                return ((LocalDeviceNode) target.get()).sendD2CMessage(this,
-                                                                       invocation.getParameters());
+            public ActionResults invoke(DSIActionRequest req) {
+                return ((LocalDeviceNode) req.getTarget()).sendD2CMessage(req);
             }
         };
-        act.addParameter("Message", DSValueType.STRING, null);
+        act.addParameter("Message", DSString.NULL, null);
         act.addDefaultParameter("Properties", new DSMap(), null);
         act.addDefaultParameter("Await Response", DSBool.TRUE, null);
-        act.setResultType(ResultType.VALUES);
-        act.addColumnMetadata("Response Status", DSValueType.STRING);
+        act.setResultsType(ResultsType.VALUES);
+        act.addColumnMetadata("Response Status", DSString.NULL);
         return act;
     }
 
     private DSAction makeUploadFileAction() {
-        DSAction act = new DSAction.Parameterless() {
+        DSAction act = new DSAction() {
             @Override
-            public ActionResult invoke(DSInfo target, ActionInvocation invocation) {
-                return ((LocalDeviceNode) target.get()).uploadFile(this,
-                                                                   invocation.getParameters());
+            public ActionResults invoke(DSIActionRequest req) {
+                return ((LocalDeviceNode) req.getTarget()).uploadFile(req);
             }
         };
-        act.addParameter("Name", DSValueType.STRING, null);
-        act.addParameter("Filepath", DSValueType.STRING, null).setPlaceHolder("myImage.png");
-        act.setResultType(ResultType.VALUES);
-        act.addColumnMetadata("Response Status", DSValueType.STRING);
+        act.addParameter("Name", DSString.NULL, null);
+        act.addParameter("Filepath", DSString.NULL, null).setPlaceHolder("myImage.png");
+        act.setResultsType(ResultsType.VALUES);
+        act.addColumnMetadata("Response Status", DSString.NULL);
         return act;
     }
 
@@ -460,7 +454,8 @@ public class LocalDeviceNode extends DSConnection {
         }
     }
 
-    private ActionResult uploadFile(final DSAction action, DSMap parameters) {
+    private ActionResults uploadFile(final DSIActionRequest req) {
+        DSMap parameters = req.getParameters();
         if (client == null) {
             warn("Device Client not initialized");
             throw new DSRequestException("Client not initialized");
@@ -484,35 +479,11 @@ public class LocalDeviceNode extends DSConnection {
                 lockobj.wait();
             } catch (InterruptedException e) {
             }
-            if (lockobj.isEmpty()) {
-                lockobj.add(DSString.NULL);
+            DSElement value = DSString.NULL;
+            if (!lockobj.isEmpty()) {
+                value = lockobj.remove(0).toElement();
             }
-            return new ActionValues() {
-
-                @Override
-                public ActionSpec getAction() {
-                    return action;
-                }
-
-                @Override
-                public int getColumnCount() {
-                    return lockobj.size();
-                }
-
-                @Override
-                public void getMetadata(int col, DSMap bucket) {
-                    action.getColumnMetadata(col, bucket);
-                }
-
-                @Override
-                public DSIValue getValue(int col) {
-                    return lockobj.get(col);
-                }
-
-                @Override
-                public void onClose() {
-                }
-            };
+            return DSIAction.toResults(req, value);
         }
 
     }
@@ -534,6 +505,36 @@ public class LocalDeviceNode extends DSConnection {
             }
             incomingMessage(msgMap);
             return IotHubMessageResult.COMPLETE;
+        }
+    }
+
+    private class ConnectionStatusCallback implements IotHubConnectionStatusChangeCallback {
+
+        @Override
+        public void execute(IotHubConnectionStatus newStatus,
+                            IotHubConnectionStatusChangeReason statusChangeReason,
+                            Throwable throwable,
+                            Object callbackContext) {
+            put(status, DSString.valueOf(newStatus + ": " + statusChangeReason));
+            info("Connection status changed to " + newStatus + "; for reason "
+                         + statusChangeReason);
+            if (throwable != null) {
+                warn("", throwable);
+            }
+            if (newStatus == IotHubConnectionStatus.DISCONNECTED) {
+                connDown(statusChangeReason.toString());
+            } else if (newStatus == IotHubConnectionStatus.CONNECTED) {
+                connOk();
+            }
+        }
+    }
+
+    public static class D2CRoutingNode extends DSNode {
+
+        @Override
+        protected void declareDefaults() {
+            super.declareDefaults();
+            declareDefault(Constants.ACT_ADD_RULE, makeAddRuleAction());
         }
     }
 
@@ -568,24 +569,6 @@ public class LocalDeviceNode extends DSConnection {
         public void execute(IotHubStatusCode responseStatus, Object callbackContext) {
             info("IoT Hub responded to device method operation with status "
                          + responseStatus.name());
-        }
-    }
-    
-    private class ConnectionStatusCallback implements IotHubConnectionStatusChangeCallback {
-        @Override
-        public void execute(IotHubConnectionStatus newStatus,
-                IotHubConnectionStatusChangeReason statusChangeReason, Throwable throwable,
-                Object callbackContext) {
-            put(status, DSString.valueOf(newStatus + ": " + statusChangeReason));
-            info("Connection status changed to " + newStatus + "; for reason " + statusChangeReason);
-            if (throwable != null) {
-                warn("", throwable);
-            }
-            if (newStatus == IotHubConnectionStatus.DISCONNECTED) {
-                connDown(statusChangeReason.toString());
-            } else if (newStatus == IotHubConnectionStatus.CONNECTED) {
-                connOk();
-            }
         }
     }
 
@@ -632,15 +615,6 @@ public class LocalDeviceNode extends DSConnection {
         }
 
     }
-    
-    public static class D2CRoutingNode extends DSNode {
-        
-        @Override
-        protected void declareDefaults() {
-            super.declareDefaults();
-            declareDefault(Constants.ACT_ADD_RULE, makeAddRuleAction());
-        }
-    }
 
     private class ResponseCallback implements IotHubEventCallback {
 
@@ -656,20 +630,5 @@ public class LocalDeviceNode extends DSConnection {
                 }
             }
         }
-    }
-
-    @Override
-    protected void doConnect() {
-        init();
-    }
-
-    @Override
-    protected void doDisconnect() {
-        // TODO Auto-generated method stub
-    }
-
-    @Override
-    protected void checkConfig() {
-        // TODO Auto-generated method stub
     }
 }

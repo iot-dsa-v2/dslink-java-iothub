@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import org.iot.dsa.dslink.ActionResults;
 import org.iot.dsa.iothub.node.BoolNode;
 import org.iot.dsa.iothub.node.DoubleNode;
 import org.iot.dsa.iothub.node.ListNode;
@@ -13,10 +14,9 @@ import org.iot.dsa.node.DSIObject;
 import org.iot.dsa.node.DSInfo;
 import org.iot.dsa.node.DSMap;
 import org.iot.dsa.node.DSNode;
-import org.iot.dsa.node.DSValueType;
-import org.iot.dsa.node.action.ActionInvocation;
-import org.iot.dsa.node.action.ActionResult;
+import org.iot.dsa.node.DSString;
 import org.iot.dsa.node.action.DSAction;
+import org.iot.dsa.node.action.DSIActionRequest;
 
 /**
  * A node that represents a Device Twin Property or Tag whose value is a map.
@@ -28,16 +28,6 @@ public class TwinPropertyNode extends DSNode implements TwinProperty, TwinProper
     private Set<String> nulls = new HashSet<String>();
 
     public TwinPropertyNode() {
-    }
-    
-    
-    @Override
-    protected void onRemoved() {
-        super.onRemoved();
-        DSNode parent = getParent();
-        if (parent instanceof TwinPropertyContainer) {
-            ((TwinPropertyContainer) parent).onDelete(getInfo());
-        }
     }
 
     @Override
@@ -113,6 +103,15 @@ public class TwinPropertyNode extends DSNode implements TwinProperty, TwinProper
         onChange(info);
     }
 
+    @Override
+    protected void onRemoved() {
+        super.onRemoved();
+        DSNode parent = getParent();
+        if (parent instanceof TwinPropertyContainer) {
+            ((TwinPropertyContainer) parent).onDelete(getInfo());
+        }
+    }
+
     private void invokeAdd(DSMap parameters) {
         String name = parameters.getString("Name");
         String vt = parameters.getString("Value Type");
@@ -120,14 +119,14 @@ public class TwinPropertyNode extends DSNode implements TwinProperty, TwinProper
     }
 
     private static DSAction makeAddAction() {
-        DSAction act = new DSAction.Parameterless() {
+        DSAction act = new DSAction() {
             @Override
-            public ActionResult invoke(DSInfo target, ActionInvocation invocation) {
-                ((TwinPropertyNode) target.get()).invokeAdd(invocation.getParameters());
+            public ActionResults invoke(DSIActionRequest req) {
+                ((TwinPropertyNode) req.getTarget()).invokeAdd(req.getParameters());
                 return null;
             }
         };
-        act.addParameter("Name", DSValueType.STRING, null);
+        act.addParameter("Name", DSString.NULL, null);
         act.addParameter("Value Type", DSFlexEnum.valueOf("String", Util.getSimpleValueTypes()),
                          null);
         return act;

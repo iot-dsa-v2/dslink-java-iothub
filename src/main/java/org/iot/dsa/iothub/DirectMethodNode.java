@@ -25,7 +25,7 @@ import org.iot.dsa.time.DSDateTime;
 /**
  * An instance of this node This node represents a direct method of a local device. The IoT Hub that
  * the device is registered in can invoke this method. Whenever this happens, details of the
- * invocation will be stored by this node. If this node has an associated path to a DSA action, then
+ * req will be stored by this node. If this node has an associated path to a DSA action, then
  * this will also cause that action to be invoked.
  *
  * @author Daniel Shapiro
