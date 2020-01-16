@@ -48,7 +48,7 @@ This node represents a specific local device registered in an Azure IoT Hub.
 
 **Actions**
 - Refresh - Re-establish the connection between this device and the IoT Hub.
-- Edit - Change the protocol used to communicate with the Iot Hub.
+- Edit - Change the protocol used to communicate with the Iot Hub, or the connection string of the device.
 - Send D2C Message - Send a device-to-cloud message to the IoT Hub this device is registered in.
 - Upload File - Upload a file to the Azure storage container associated with the IoT Hub.
 - Reported Properties/Add Reported Property - Creates a reported property value, and sends it to the IoT Hub to update this device's twin in the IoT Hub.
