@@ -343,7 +343,7 @@ public class LocalDeviceNode extends DSConnection {
         DSAction act = new DSAction() {
             @Override
             public ActionResults invoke(DSIActionRequest req) {
-                ((LocalDeviceNode) req.getTarget()).addDirectMethod(req.getParameters());
+                ((LocalDeviceNode) req.getTargetInfo().getParent()).addDirectMethod(req.getParameters());
                 return null;
             }
         };
@@ -358,7 +358,7 @@ public class LocalDeviceNode extends DSConnection {
         DSAction act = new DSAction() {
             @Override
             public ActionResults invoke(DSIActionRequest req) {
-                ((LocalDeviceNode) req.getTarget()).addReportedProp(req.getParameters());
+                ((LocalDeviceNode) req.getTargetInfo().getParent()).addReportedProp(req.getParameters());
                 return null;
             }
         };
@@ -372,7 +372,7 @@ public class LocalDeviceNode extends DSConnection {
         DSAction act = new DSAction() {
             @Override
             public ActionResults invoke(DSIActionRequest request) {
-                ((LocalDeviceNode) request.getTarget()).addRule(request.getParameters());
+                ((LocalDeviceNode) request.getTargetInfo().getParent()).addRule(request.getParameters());
                 return null;
             }
         };
