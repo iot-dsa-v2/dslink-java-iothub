@@ -624,7 +624,7 @@ public class LocalDeviceNode extends DSConnection {
             if (context != null) {
                 synchronized (context) {
                     if (context instanceof List<?> && responseStatus != null) {
-                        ((List<IotHubStatusCode>) context).add(responseStatus);
+                        ((List<DSIValue>) context).add(DSString.valueOf(responseStatus.toString()));
                     }
                     context.notify();
                 }
