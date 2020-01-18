@@ -58,9 +58,33 @@ This node represents a specific local device registered in an Azure IoT Hub.
 - Cloud-to-Device Messages - A list of cloud-to-device messages that this device has received from the IoT Hub.
 
 **Child Nodes**
+ - D2C Rules - Holds _D2CRuleNodes_
  - Methods - Holds _DirectMethodNodes_
  - Desired Properties - Holds the desired properties of this device's device twin, retrieved from the IoT Hub.
  - Reported Properties - Holds this device's reported properties and the action that creates them.
+
+### D2C Rules
+
+Holds _D2CRuleNodes_ associated with its parent _LocalDeviceNode_.
+
+**Actions**
+- Add Rule - Create a _D2CRuleNode_ to configure automatic sending of device-to-cloud messages, providing a DSA path to watch and a format for the messages.
+
+**Child Nodes**
+ - any _D2CRuleNodes_ that have been added.
+
+### D2CRuleNode
+
+Defines a subscription to a DSA path, which will send its updates to IoT Hub as device-to-cloud messages
+
+**Parameters (for the `Add Rule` and `Edit` actions)**
+- `Subscribe Path` - The DSA path to subscribe to.
+- `Properties` - A map of properties to be sent with each D2C message created by this rule. If you want to use the value, timestamp, or status of an update in the properties, use the placeholders `%VALUE%`, `%TIMESTAMP%` and `%STATUS%`.
+  - e.g. `{"node_name":"kWh", "timestamp":"%TIMESTAMP%"}`
+- `Body` - The message body.  Once again, use %VALUE%, %TIMESTAMP% and %STATUS% as placeholders.
+  - e.g. `The new value is %VALUE%`
+- Minimum Refresh Rate: Optional, ensures that at least this many seconds elapse between updates. This means that the DSLink will suppress updates that are too close together. (Leave this parameter as 0 to not use this feature.)
+- Maximum Refresh Rate: Optional, ensures that an update gets sent every this many seconds. This means that if the DSA value updates too infrequently, the DSLink will send duplicate updates. (Leave this parameter as 0 to not use this feature.)
 
 ### Methods
 
