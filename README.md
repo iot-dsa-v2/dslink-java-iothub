@@ -98,7 +98,26 @@ Holds _DirectMethodNodes_ associated with its parent _LocalDeviceNode_.
 
 ### DirectMethodNode
 
-This node represents a direct method of a local device. The IoT Hub that the device is registered in can invoke this method. Whenever this happens, details of the invocation will be stored by this node. If this node has an associated path to a DSA action, then this will also cause that action to be invoked.
+This node represents a direct method of a local device. The IoT Hub that the device is registered in can invoke this method, with an optional map of invocation parameters as the payload. Whenever this happens, details of the invocation will be stored by this node. It can also be set up to trigger DSA behavior when this happens, by specifying the `Path` and `DSA Method`.
+  - The `Path` specifies a DSA path, and can optionally contain placeholders. A placeholder can be any word surrounded by `%` symbols. When an invocation is recieved, all placeholders will be replaced by corresponding values from the parameters of the invocation, and the resulting resolved path will then be used.
+  - If the `DSA Method` is `INVOKE`, the action at the resolved path will be passed the remaining invocation parameters and invoked. The return value of the DSA action will then be sent back to IoT Hub as the direct method response.
+  - If the `DSA Method` is `GET`, the value at the resolved path will be sent back to IoT Hub as the direct method response.
+  - If the `DSA Method` is `SET`, the value at the resolved path will be set to whatever is in the `Value` parameter in the invocation parameters.
+  
+  - Some examples of ways to set up direct methods, and example payloads to invoke them with:
+    - DSA Method: `INVOKE`; Path: `/sys/get_server_log`; Example payload: `{"lines" : 25}`
+      - this direct method would return however many lines you want of the DSA server log
+    - DSA Method: `INVOKE`; Path: `/sys/links/%link%/get_log`; Example payload: `{"link": "bacnet", "lines" : 25}`
+      - this direct method would return however many lines you want of whichever DSLink's log you want
+    - DSA Method: `GET`; Path: `/sys/version`; Example payload: `{}`
+      - this direct method would return the DSA server's DSA Version
+    - DSA Method: `SET`; Path: `/sys/enableQuarantine`; Example payload: `{"Value": false}`
+      - this direct method would set the DSA server's "Enable Quarantine" value to the desired boolean
+    - DSA Method: `GET`; Path: `/data/%datanode%`; Example payload: `{"datanode": "test_point"}`
+      - this direct method would get the value of any node in the data tree
+    - DSA Method: `SET`; Path: `/data/%datanode%`; Example payload: `{"datanode": "LivingRoom/Temperature", "Value": 72}`
+      - this direct method would set the value of any node in the data tree
+  
 
 **Actions**
 - Remove - Remove this node.
