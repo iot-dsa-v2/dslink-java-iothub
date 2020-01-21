@@ -118,6 +118,8 @@ This node represents a direct method of a local device. The IoT Hub that the dev
     - DSA Method: `SET`; Path: `/data/%datanode%`; Example payload: `{"datanode": "LivingRoom/Temperature", "Value": 72}`
       - this direct method would set the value of any node in the data tree
   
+  Flow chart of what the DSLink does when it recieves a direct method invocation from IoT Hub:
+  ![](docs/direct_method_flowchart.svg)
 
 **Actions**
 - Remove - Remove this node.
