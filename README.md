@@ -58,9 +58,33 @@ This node represents a specific local device registered in an Azure IoT Hub.
 - Cloud-to-Device Messages - A list of cloud-to-device messages that this device has received from the IoT Hub.
 
 **Child Nodes**
+ - D2C Rules - Holds _D2CRuleNodes_
  - Methods - Holds _DirectMethodNodes_
  - Desired Properties - Holds the desired properties of this device's device twin, retrieved from the IoT Hub.
  - Reported Properties - Holds this device's reported properties and the action that creates them.
+
+### D2C Rules
+
+Holds _D2CRuleNodes_ associated with its parent _LocalDeviceNode_.
+
+**Actions**
+- Add Rule - Create a _D2CRuleNode_ to configure automatic sending of device-to-cloud messages, providing a DSA path to watch and a format for the messages.
+
+**Child Nodes**
+ - any _D2CRuleNodes_ that have been added.
+
+### D2CRuleNode
+
+Defines a subscription to a DSA path, which will send its updates to IoT Hub as device-to-cloud messages
+
+**Parameters (for the `Add Rule` and `Edit` actions)**
+- `Subscribe Path` - The DSA path to subscribe to.
+- `Properties` - A map of properties to be sent with each D2C message created by this rule. If you want to use the value, timestamp, or status of an update in the properties, use the placeholders `%VALUE%`, `%TIMESTAMP%` and `%STATUS%`.
+  - e.g. `{"node_name":"kWh", "timestamp":"%TIMESTAMP%"}`
+- `Body` - The message body.  Once again, use %VALUE%, %TIMESTAMP% and %STATUS% as placeholders.
+  - e.g. `The new value is %VALUE%`
+- Minimum Refresh Rate: Optional, ensures that at least this many seconds elapse between updates. This means that the DSLink will suppress updates that are too close together. (Leave this parameter as 0 to not use this feature.)
+- Maximum Refresh Rate: Optional, ensures that an update gets sent every this many seconds. This means that if the DSA value updates too infrequently, the DSLink will send duplicate updates. (Leave this parameter as 0 to not use this feature.)
 
 ### Methods
 
@@ -74,7 +98,28 @@ Holds _DirectMethodNodes_ associated with its parent _LocalDeviceNode_.
 
 ### DirectMethodNode
 
-This node represents a direct method of a local device. The IoT Hub that the device is registered in can invoke this method. Whenever this happens, details of the invocation will be stored by this node. If this node has an associated path to a DSA action, then this will also cause that action to be invoked.
+This node represents a direct method of a local device. The IoT Hub that the device is registered in can invoke this method, with an optional map of invocation parameters as the payload. Whenever this happens, details of the invocation will be stored by this node. It can also be set up to trigger DSA behavior when this happens, by specifying the `Path` and `DSA Method`.
+  - The `Path` specifies a DSA path, and can optionally contain placeholders. A placeholder can be any word surrounded by `%` symbols. When an invocation is recieved, all placeholders will be replaced by corresponding values from the parameters of the invocation, and the resulting resolved path will then be used.
+  - If the `DSA Method` is `INVOKE`, the action at the resolved path will be passed the remaining invocation parameters and invoked. The return value of the DSA action will then be sent back to IoT Hub as the direct method response.
+  - If the `DSA Method` is `GET`, the value at the resolved path will be sent back to IoT Hub as the direct method response.
+  - If the `DSA Method` is `SET`, the value at the resolved path will be set to whatever is in the `Value` parameter in the invocation parameters.
+  
+  - Some examples of ways to set up direct methods, and example payloads to invoke them with:
+    - DSA Method: `INVOKE`; Path: `/sys/get_server_log`; Example payload: `{"lines" : 25}`
+      - this direct method would return however many lines you want of the DSA server log
+    - DSA Method: `INVOKE`; Path: `/sys/links/%link%/get_log`; Example payload: `{"link": "bacnet", "lines" : 25}`
+      - this direct method would return however many lines you want of whichever DSLink's log you want
+    - DSA Method: `GET`; Path: `/sys/version`; Example payload: `{}`
+      - this direct method would return the DSA server's DSA Version
+    - DSA Method: `SET`; Path: `/sys/enableQuarantine`; Example payload: `{"Value": false}`
+      - this direct method would set the DSA server's "Enable Quarantine" value to the desired boolean
+    - DSA Method: `GET`; Path: `/data/%datanode%`; Example payload: `{"datanode": "test_point"}`
+      - this direct method would get the value of any node in the data tree
+    - DSA Method: `SET`; Path: `/data/%datanode%`; Example payload: `{"datanode": "LivingRoom/Temperature", "Value": 72}`
+      - this direct method would set the value of any node in the data tree
+  
+  Flow chart of what the DSLink does when it recieves a direct method invocation from IoT Hub:
+  ![](docs/direct_method_flowchart.svg)
 
 **Actions**
 - Remove - Remove this node.
